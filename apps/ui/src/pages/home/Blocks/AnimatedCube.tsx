@@ -414,7 +414,7 @@ export function AnimatedCube({
 		} else if (isLoading && loadingLiquidOpacityRef.current > 0) {
 			// Loading state liquid effect
 			liquidMaterial.uniforms['uOpacity'].value = loadingLiquidOpacityRef.current
-			liquidMaterial.uniforms['uColorProgress'].value = 0 // Keep it orange/red for loading
+			liquidMaterial.uniforms['uColorProgress'].value = 0 // Keep it gold for loading
 		} else {
 			liquidMaterial.uniforms['uOpacity'].value = 0
 			liquidMaterial.uniforms['uColorProgress'].value = 0

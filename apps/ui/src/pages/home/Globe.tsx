@@ -26,12 +26,12 @@ const HEX_MAP_RESOLUTION = 3
 // User and peer location markers
 const USER_DOT_COLOR = '#FFF'
 const USER_DOT_RADIUS = 0.8
-const PEER_DOT_COLOR = 'hsl(29,100%,60%)'
+const PEER_DOT_COLOR = 'hsl(42,90%,60%)'
 const PEER_DOT_RADIUS = 0.4
 const POINT_ALTITUDE = 0.01
 
 // Arc lines connecting peers to user
-const ARC_COLOR = 'hsl(29,100%,60%)'
+const ARC_COLOR = 'hsl(42,90%,60%)'
 const ARC_OPACITY = 0.35
 const ARC_CURVE_RESOLUTION = 64 // Number of segments in arc curve (higher = smoother)
 const ARC_IDENTIFIER = 'isCustomArc' // UserData identifier for custom arc lines
@@ -40,7 +40,7 @@ const ARC_HEIGHT_MULTIPLIER = 0.05 // Controls how high arcs curve (higher = mor
 
 // Transaction sphere animation
 const TX_SPHERE_RADIUS = 0.6
-const TX_SPHERE_COLOR = 'hsl(29,90%,70%)'
+const TX_SPHERE_COLOR = 'hsl(42,90%,70%)'
 const TX_SPEED = 125 // units per second
 const MAX_SPHERES_PER_UPDATE = 20 // Max spheres to spawn per transaction count update
 const MAX_CONCURRENT_SPHERES = 75 // Max total spheres animating simultaneously

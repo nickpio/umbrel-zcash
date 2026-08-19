@@ -16,9 +16,9 @@ export default function Toggle({name, checked, disabled, onToggle, disabledMessa
 			checked={checked}
 			onCheckedChange={onToggle}
 			disabled={disabled}
-			className='h-[20px] w-[36px] border-2 shadow-[0_0_8.36px_0_hsla(29_100%_51%_0.2)]
+			className='h-[20px] w-[36px] border-2 shadow-[0_0_8.36px_0_hsla(42_90%_56%_0.2)]
                  data-[state=unchecked]:bg-[hsl(0_0%_15%)]
-                 data-[state=checked]:bg-[hsl(29_100%_47%)]
+                 data-[state=checked]:bg-[hsl(42_90%_47%)]
                  data-disabled:bg-[hsl(0_0%_15%)]
                  [&>[data-state]]:bg-white
                  [&>[data-state]]:shadow-lg

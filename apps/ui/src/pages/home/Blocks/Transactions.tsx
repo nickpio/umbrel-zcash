@@ -97,18 +97,18 @@ const goldenGradientMaterial = new THREE.ShaderMaterial({
 			gradient = floor(gradient * steps) / steps + (1.0 / (steps * 2.0));
 			
 			// Non-hover gradient colors
-			vec3 darkRed = vec3(0.180, 0.027, 0.004); // #2E0701
-			vec3 brightOrange = vec3(0.745, 0.212, 0.0); // #BE3600
-			vec3 goldenYellow = vec3(0.933, 0.690, 0.027); // #EEB007
+			vec3 darkGold = vec3(0.165, 0.110, 0.016); // #2A1C04
+			vec3 midGold = vec3(0.769, 0.541, 0.071); // #C48A12
+			vec3 goldenYellow = vec3(0.957, 0.718, 0.157); // #F4B728
 			
 			// Hover gradient colors
-			vec3 darkOrange = vec3(0.784, 0.357, 0.114); // #C85B1D
+			vec3 hoverGold = vec3(0.851, 0.659, 0.196); // #D9A832
 			vec3 brightYellow = vec3(0.992, 0.820, 0.0); // #FDD100
 			vec3 paleYellow = vec3(1.0, 0.984, 0.769); // #FFFBC4
 			
 			// Mix colors based on hover state
-			vec3 color1 = mix(darkRed, darkOrange, gradientInvert);
-			vec3 color2 = mix(brightOrange, brightYellow, gradientInvert);
+			vec3 color1 = mix(darkGold, hoverGold, gradientInvert);
+			vec3 color2 = mix(midGold, brightYellow, gradientInvert);
 			vec3 color3 = mix(goldenYellow, paleYellow, gradientInvert);
 			
 			// Band thresholds
