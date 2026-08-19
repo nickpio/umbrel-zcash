@@ -3,11 +3,11 @@ version: '3.7'
 services:
   app_proxy:
     environment:
-      APP_HOST: $APP_ZCASH_NODE_IP
+      APP_HOST: zec-zcash-node_app_1
       APP_PORT: 3000
 
   app:
-    image: ghcr.io/nickpio/umbrel-zcash:v0.1.1
+    image: ghcr.io/nickpio/umbrel-zcash:v0.1.2
     user: '1000:1000'
     restart: on-failure
     stop_grace_period: 15m30s
@@ -29,7 +29,7 @@ services:
       TOR_SOCKS_PORT: 9050
       TOR_CONTROL_PORT: 9051
       TOR_CONTROL_PASSWORD: moneyprintergobrrr
-      BITCOIND_IP: ${APP_ZCASH_NODE_IP}
+      BITCOIND_IP: 127.0.0.1
       DEVICE_DOMAIN_NAME: ${DEVICE_DOMAIN_NAME}
       P2P_HIDDEN_SERVICE: ${APP_ZCASH_P2P_HIDDEN_SERVICE}
       RPC_HIDDEN_SERVICE: ${APP_ZCASH_RPC_HIDDEN_SERVICE}

@@ -11,8 +11,11 @@ import routes from './routes.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-// Ensure that the required data directories exist before we start
-await ensureDirs()
+try {
+	await ensureDirs()
+} catch (error) {
+	console.error('Failed to create data directories; continuing so the HTTP server can still bind.', error)
+}
 
 // Start bitcoind without blocking server start
 bootBitcoind().catch((error) => {
