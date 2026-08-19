@@ -2,14 +2,13 @@ manifestVersion: 1.1
 id: zec-zcash-node
 category: finance
 name: Zcash Node
-version: 0.1.2
+version: 0.1.3
 tagline: Run your own Zcash full node
 description: >-
   Run a Zcash full node on umbrelOS, powered by Zebra, with a lightwalletd
   wallet server so Zashi, Ywallet, and Zingo can connect to your own node.
 releaseNotes: >-
-  Fix the Umbrel dashboard connection so the app proxy can reach the
-  container after install.
+  Full-bleed app icon so it fills the home screen and App Store tile.
 developer: Zcash Node
 website: https://zebra.zfnd.org
 dependencies: []
