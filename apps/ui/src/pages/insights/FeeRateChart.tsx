@@ -12,7 +12,7 @@ import {useSyncStatus} from '@/hooks/useSyncStatus'
 import {syncStage} from '@/lib/sync-progress'
 
 const SERIES = {
-	p50: {label: '50th-percentile', color: 'hsl(29 100% 51%)'},
+	p50: {label: '50th-percentile', color: 'hsl(42 90% 55%)'},
 } as const
 
 export default function FeeRateChart() {

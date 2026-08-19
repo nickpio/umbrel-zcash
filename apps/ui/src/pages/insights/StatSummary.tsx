@@ -67,31 +67,19 @@ export default function StatSummary() {
 					label='Connections'
 					value={peers}
 					unit='Peers'
-					description={`These are the total number of peers that you are connected to. By default, your node will only make outgoing connections* unless you enable incoming connections from the Settings page.
-
-											Outbound:
-											Your node keeps up to 10 outbound peers (8 full-relay + 2 block-relay-only); a brief +1 “feeler” connection may appear occasionally while the node tests new addresses.
-
-											Inbound:
-											If you enable inbound connections, your node can accept up to 115 inbound peers by default (the 125 maxconnections default minus the 10 reserved outbound slots).
-
-											* Wallets, Electrum servers (e.g., Electrs), or other local apps that you point at this node will still show up as inbound connections even when general inbound is disabled.`}
+					description={`These are the total number of peers that Zebra is connected to. The target outbound count is set on the Settings page. Incoming connections are allowed when that toggle is enabled.`}
 				/>
 				<Stat
 					label='Mempool'
 					value={memVal}
 					unit={memUnit}
-					description={`This is the RAM your node's mempool is currently using to store unconfirmed transactions that it knows about. The number is unique to *your* node (every node sees a different set of pending transactions) and is limited by the “maxmempool” option in the Settings page.`}
+					description={`RAM Zebra is using to store unconfirmed transactions it currently knows about. Every node sees a slightly different mempool.`}
 				/>
 				<Stat
 					label='Blockchain Size'
 					value={chainVal}
 					unit={chainUnit}
-					description={`This is the space used by the block data and the undo information that lets your node rewind blocks if needed. It grows with every new block unless pruning is enabled from the Settings page. The number excludes the UTXO database, index files, wallets, and logs.
-
-											• Full node: shows the entire size of the blockchain.
-
-											• Pruned node: stays near your prune-target size because older blocks are deleted.`}
+					description={`Disk used by Zebra’s verified chain state. This grows with every new block.`}
 				/>
 				<Stat
 					label='Node Uptime'

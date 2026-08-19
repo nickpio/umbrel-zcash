@@ -1,7 +1,7 @@
 {
-	"name": "Bitcoin Node",
-	"short_name": "Bitcoin Node",
-	"description": "Bitcoin Node",
+	"name": "Zcash Node",
+	"short_name": "Zcash Node",
+	"description": "Zcash Node",
 	"dir": "auto",
 	"lang": "en-US",
 	"display": "standalone",

@@ -9,8 +9,8 @@ export type BitcoindStatus = {
 	running: boolean
 	startedAt: number | null
 	error: Error | null
-	// TODO: we probably don't want to pid to the UI, but nice to have in dev right now
 	pid: number | null
+	lightwalletdRunning: boolean
 }
 
 type BitcoindLifecycleResult = 'started' | 'stopped' | 'no_op'
@@ -33,7 +33,6 @@ export type PeerCount = {
 	byNetwork: Record<string, {inbound: number; outbound: number; total: number}>
 }
 
-// Partial type of getpeerinfo
 export type PeerInfo = {
 	id: number
 	addr: string
@@ -65,12 +64,11 @@ export type PeerLocationsResponse = {
 
 export type RawTransaction = {
 	txid: string
-	fee?: number // fee in BTC (not available for coinbase)
+	fee?: number
 	vsize: number
 	weight: number
 }
 
-// subset of getblock (verbosity 2) that we care about
 export type RawBlock = {
 	hash: string
 	height: number
@@ -81,7 +79,6 @@ export type RawBlock = {
 	tx: RawTransaction[]
 }
 
-// Unified block type used throughout the app (backend cache, API, frontend)
 export type Block = {
 	hash: string
 	height: number
@@ -95,7 +92,6 @@ export type Block = {
 	transactionGrid: {size: number; numberOfBlocks: number}[]
 }
 
-// TODO: Replace these 2 below with actual types
 export type SummaryResponse = {
 	networkInfo: unknown
 	blockchainInfo: unknown
@@ -112,42 +108,40 @@ export type SyncStatus = {
 	isInitialBlockDownload: boolean
 	blockHeight: number
 	validatedHeaderHeight: number
+	estimatedHeight: number
+	walletReady: boolean
 }
 
 export type Stats = {
-	peers: number // total connections
-	mempoolBytes: number // Total memory usage for the mempool in bytes
-	chainBytes: number // the estimated size of the block and undo files on disk in bytes
-	uptimeSec: number // seconds since bitcoind started (0 if down)
+	peers: number
+	mempoolBytes: number
+	chainBytes: number
+	uptimeSec: number
+	blockHeight: number
+}
+
+export type EndpointDetails = {
+	host: string
+	port: string
+	uri: string
+}
+
+export type RpcEndpointDetails = EndpointDetails & {
+	username: string
+	password: string
 }
 
 export type ConnectionDetails = {
+	wallet: {
+		tor: EndpointDetails
+		local: EndpointDetails
+	}
 	p2p: {
-		tor: {
-			host: string
-			port: string
-			uri: string
-		}
-		local: {
-			host: string
-			port: string
-			uri: string
-		}
+		tor: EndpointDetails
+		local: EndpointDetails
 	}
 	rpc: {
-		tor: {
-			host: string
-			port: string
-			username: string
-			password: string
-			uri: string
-		}
-		local: {
-			host: string
-			port: string
-			username: string
-			password: string
-			uri: string
-		}
+		tor: RpcEndpointDetails
+		local: RpcEndpointDetails
 	}
 }

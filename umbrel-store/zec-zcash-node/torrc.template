@@ -1,0 +1,13 @@
+HiddenServiceDir /data/app-zcash-p2p
+HiddenServicePort 8233 10.21.21.80:8233
+
+HiddenServiceDir /data/app-zcash-rpc
+HiddenServicePort 8232 10.21.21.80:8232
+
+HiddenServiceDir /data/app-zcash-wallet
+HiddenServicePort 9067 10.21.21.80:9067
+
+SocksPort 0.0.0.0:9050
+ControlPort 0.0.0.0:9051
+CookieAuthentication 1
+HashedControlPassword 16:872860B76453A77D60CA2BBD1C25CF417CCC10752E129FD324A41CD205

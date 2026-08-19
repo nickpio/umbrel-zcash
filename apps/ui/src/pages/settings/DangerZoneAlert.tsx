@@ -8,7 +8,7 @@ export default function DangerZoneAlert() {
 			<AlertTitle className='text-[#EDCE00]'>Danger Zone</AlertTitle>
 			<AlertDescription className='text-[#EDCE00]'>
 				Any changes you make here are not validated. Please ensure that you know what you are doing, and that you
-				understand how changes may impact both your Bitcoin node and any apps or wallets that rely on it.
+				understand how changes may impact both your Zcash node and any apps or wallets that rely on it.
 			</AlertDescription>
 		</Alert>
 	)

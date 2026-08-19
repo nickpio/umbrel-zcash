@@ -5,7 +5,7 @@ import fastifyWs from '@fastify/websocket'
 import fastifyStatic from '@fastify/static'
 import helmet from '@fastify/helmet'
 
-import {bootBitcoind, bitcoind} from './modules/bitcoind/bitcoind.js'
+import {bootBitcoind, bitcoind, stop as stopStack} from './modules/bitcoind/bitcoind.js'
 import {ensureDirs} from './lib/paths.js'
 import routes from './routes.js'
 
@@ -17,7 +17,7 @@ await ensureDirs()
 // Start bitcoind without blocking server start
 bootBitcoind().catch((error) => {
 	bitcoind.setLastError(error as Error) // record for /status
-	app.log.error(error, 'Bitcoind bootstrap failed.')
+	app.log.error(error, 'Zebra bootstrap failed.')
 })
 
 // Create the HTTP server and register the routes
@@ -73,7 +73,7 @@ app.get('/*', (_, reply) => reply.sendFile('index.html'))
 // Start the server
 app
 	.listen({port: 3000, host: '0.0.0.0'})
-	.then((address) => app.log.info(`₿itcoin Node backend is running at ${address}`))
+	.then((address) => app.log.info(`Zcash Node backend is running at ${address}`))
 	.catch((error) => {
 		app.log.error(`Failed to start server: ${error}`)
 		process.exit(1)
@@ -84,6 +84,6 @@ process.on('unhandledRejection', (reason) => app.log.error({reason}, 'Unhandled 
 
 // Graceful shutdown of bitcoind
 // TODO: fix for dev: [tsx] Previous process hasn't exited yet. Force killing...
-const shutdown = () => bitcoind.stop().then(() => process.exit(0))
+const shutdown = () => stopStack().then(() => process.exit(0))
 process.on('SIGINT', shutdown)
 process.on('SIGTERM', shutdown)

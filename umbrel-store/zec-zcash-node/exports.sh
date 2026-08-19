@@ -1,0 +1,11 @@
+export APP_ZCASH_NODE_IP="10.21.21.80"
+export APP_ZCASH_TOR_PROXY_IP="10.21.22.80"
+export APP_ZCASH_P2P_PORT="8233"
+export APP_ZCASH_RPC_PORT="8232"
+export APP_ZCASH_WALLET_PORT="9067"
+export APP_ZCASH_DATA_DIR="${APP_DATA_DIR}/data"
+
+TOR_DIR="${EXPORTS_TOR_DATA_DIR:-${APP_DATA_DIR}/tor}"
+export APP_ZCASH_P2P_HIDDEN_SERVICE="$(cat "${TOR_DIR}/app-zcash-p2p/hostname" 2>/dev/null || true)"
+export APP_ZCASH_RPC_HIDDEN_SERVICE="$(cat "${TOR_DIR}/app-zcash-rpc/hostname" 2>/dev/null || true)"
+export APP_ZCASH_WALLET_HIDDEN_SERVICE="$(cat "${TOR_DIR}/app-zcash-wallet/hostname" 2>/dev/null || true)"

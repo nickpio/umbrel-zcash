@@ -28,7 +28,7 @@ jobs:
       - name: Run Docker buildx
         run: |
           docker buildx build \
-            --platform linux/amd64,linux/arm64 \
+            --platform linux/amd64 \
             --file apps/backend/Dockerfile \
             --build-arg VERSION=${{ env.VERSION }} \
             --tag ghcr.io/${{ github.repository }}:${{ env.TAG }} \

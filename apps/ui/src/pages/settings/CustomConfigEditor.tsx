@@ -23,9 +23,9 @@ export default function CustomConfigEditor() {
 
 	return (
 		<div className='border border-white/20 rounded-lg p-4 w-full'>
-			<label className='text-[14px] font-[400] text-white'>Custom bitcoin.conf overrides</label>
+			<label className='text-[14px] font-[400] text-white'>Custom zebrad.toml overrides</label>
 			<p className='text-[13px] font-[400] text-white/60'>
-				Add custom bitcoin.conf options here. Any options here will override settings from the other tabs.
+				Add extra TOML tables or keys here. Matching keys override the generated Zebra config from the other tabs.
 			</p>
 
 			<Textarea
@@ -36,7 +36,7 @@ export default function CustomConfigEditor() {
 					[&::-webkit-scrollbar-track]:bg-transparent
 					[scrollbar-width:thin] [scrollbar-color:hsla(0,0%,100%,0.15)_transparent]
 					focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-white/30'
-				placeholder='# Add comments, [sections], or key=value lines here…'
+				placeholder='# Add [section] tables or key = value lines here…'
 				value={text}
 				onChange={(e) => setText(e.target.value)}
 			/>
@@ -47,7 +47,7 @@ export default function CustomConfigEditor() {
 				disabled={!canSave}
 				onClick={() =>
 					save.mutate(text, {
-						onSuccess: () => toast.success('Overrides saved; restarting Bitcoin Core…'),
+						onSuccess: () => toast.success('Overrides saved; restarting Zebra…'),
 						onError: (e) => toast.error(e instanceof Error ? e.message : 'Failed to save overrides'),
 					})
 				}

@@ -22,7 +22,7 @@ export default function NotFoundPage() {
 						<p className='text-5xl md:text-8xl font-bold leading-none tracking-tighter bg-text-gradient bg-clip-text text-transparent'>
 							404
 						</p>
-						<p className='mt-2 text-sm md:text-lg text-white/60'>Got lost running Bitcoin?</p>
+						<p className='mt-2 text-sm md:text-lg text-white/60'>Got lost running Zcash?</p>
 					</div>
 					<p className='text-sm md:text-base text-white/60'>
 						This page doesn't exist. Check the URL or head back home.

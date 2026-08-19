@@ -112,9 +112,9 @@ export default function RewardsChart() {
 					{/* axes / grid / data */}
 					<CartesianGrid {...DEFAULT_GRID_PROPS} />
 
-					<YAxis {...makeYAxis('Bitcoin')} domain={[0, (dataMax: number) => Math.ceil(dataMax)]} />
+					<YAxis {...makeYAxis('ZEC')} domain={[0, (dataMax: number) => Math.ceil(dataMax)]} />
 					<XAxis
-						{...makeXAxis(`Last 24h`)}
+						{...makeXAxis(`Recent blocks`)}
 						dataKey='block'
 						type='category'
 						interval='preserveStartEnd'

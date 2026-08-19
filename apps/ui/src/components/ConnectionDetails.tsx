@@ -6,7 +6,7 @@ import {motion, AnimatePresence} from 'framer-motion'
 
 import UmbrelLogo from '@/assets/umbrel-logo.svg?react'
 
-import {Alert, AlertDescription, AlertTitle} from '@/components/ui/alert'
+import {Alert, AlertDescription} from '@/components/ui/alert'
 import {
 	Dialog,
 	DialogClose,
@@ -27,15 +27,15 @@ import FadeScrollArea from '@/components/shared/FadeScrollArea'
 import type {ConnectionDetails as ConnectionDetailsType} from '#types'
 import {useConnectionDetails} from '@/hooks/useConnectionDetails'
 
+type TabId = 'wallet' | 'rpc' | 'p2p'
+
 export default function ConnectionDetails() {
 	const {data} = useConnectionDetails()
 
-	const [tab, setTab] = useState<'p2p' | 'rpc' | 'electrum'>('electrum')
+	const [tab, setTab] = useState<TabId>('wallet')
 	const [net, setNet] = useState<'tor' | 'local'>('tor')
 
-	// get specific details based on the tab and network
-	// gracefully handle no data
-	const details = data?.[tab === 'electrum' ? 'rpc' : tab]?.[net] ?? {}
+	const details = data?.[tab]?.[net] ?? {}
 	const conn = details as Partial<ConnectionDetailsType['rpc']['tor']>
 
 	return (
@@ -61,23 +61,23 @@ export default function ConnectionDetails() {
 					<DialogTitle className='font-outfit text-white text-[20px] font-[400] text-left'>
 						<div className='flex items-center gap-2'>
 							<WalletIcon className='w-5 h-5 text-white' />
-							Connect to Bitcoin Node
+							Connect to Zcash Node
 						</div>
 					</DialogTitle>
 					<DialogDescription className='text-white/60 text-left text-[13px]'>
-						Choose how your wallet talks to your own node—for full privacy and trustless verification without relying on
-						third-party servers.
+						Point a shielded wallet at this node’s lightwalletd server—the same idea as connecting a Bitcoin wallet to
+						Electrum, or a Monero wallet to your own daemon.
 					</DialogDescription>
 				</DialogHeader>
 
-				<Tabs value={tab} onValueChange={(v: string) => setTab(v as 'p2p' | 'rpc' | 'electrum')}>
+				<Tabs value={tab} onValueChange={(v: string) => setTab(v as TabId)}>
 					<div className='relative w-full after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-white/20'>
 						<TabsList className='relative flex bg-transparent rounded-none h-auto p-0 gap-1 z-10 w-max'>
 							<TabsTrigger
-								value='electrum'
+								value='wallet'
 								className='relative text-[12px] bg-transparent border-none data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=inactive]:text-white/60 focus-visible:outline-none focus:outline-none focus:ring-0 rounded-none hover:text-white/80 transition-none pb-3 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-transparent data-[state=active]:after:bg-white'
 							>
-								Electrum
+								Wallet
 							</TabsTrigger>
 							<TabsTrigger
 								value='rpc'
@@ -96,64 +96,63 @@ export default function ConnectionDetails() {
 
 					<FadeScrollArea className='h-[min(480px,calc(90vh-200px))]'>
 						<div className='space-y-4 mt-4 flex'>
-							{/* Electrum tab with app install instructions */}
-							<TabsContent value='electrum' className='space-y-4 mt-0 min-h-[360px]'>
-								<div className='space-y-4'>
-									<div className=''>
-										<p className='text-white/60 text-[13px] font-[400]'>
-											An Electrum server is the most widely supported way to connect a wallet to your own node.
-										</p>
+							<TabsContent value='wallet' className='mt-0 min-h-[360px]'>
+								<div className='flex flex-col sm:flex-row gap-4'>
+									<ConnectionTypeAndQrCard net={net} setNet={setNet} conn={conn} />
+									<div className='divide-y divide-white/6 overflow-hidden rounded-xl w-full h-fit bg-gradient-to-b from-[#1C1C1C] to-[#0D0D0D]'>
+										<Field label='Host' value={conn.host} />
+										<Field label='Port' value={conn.port?.toString()} />
+										<Field label='URI' value={conn.uri} />
 									</div>
-
-									<div className='divide-y divide-white/6 overflow-hidden rounded-xl bg-white/6'>
-										<div className='px-4 py-6 space-y-4'>
-											<div>
-												<h5 className='text-white/80 text-[14px] font-[500] mb-2'>To get up and running:</h5>
-												<ol className='text-white/70 text-[13px] font-[400] space-y-2 list-decimal list-inside'>
-													<li>
-														Install an Electrum server app (e.g., Electrs) on your Umbrel device from the umbrelOS App
-														Store.
-													</li>
-													<li>Wait while it syncs and builds its index (this can take a few hours the first time).</li>
-													<li>
-														Connect your wallet: once the server is synced, add the details shown in the app to your
-														wallet's custom electrum server option.
-													</li>
-												</ol>
-												<p className='text-white/70 text-[13px] font-[400] mt-2'>
-													That's it—no credentials needed, and your wallet now gets fast, private balance and
-													transaction updates from your own node.
-												</p>
-											</div>
-										</div>
+								</div>
+								<div className='mt-4 space-y-3'>
+									<Alert className='bg-[#EDCE0017] text-[#EDCE00] border-none'>
+										<TriangleAlert className='h-4 w-4' />
+										<AlertDescription className='text-[#EDCE00]'>
+											lightwalletd is served without TLS on your LAN and Tor hidden service. That is the usual setup for a
+											self-hosted node. Prefer the Tor address when you are off your home network.
+										</AlertDescription>
+									</Alert>
+									<div className='divide-y divide-white/6 overflow-hidden rounded-xl bg-white/6 px-4 py-4 space-y-3'>
+										<h5 className='text-white/80 text-[14px] font-[500]'>Wallet setup</h5>
+										<ol className='text-white/70 text-[13px] font-[400] space-y-2 list-decimal list-inside'>
+											<li>
+												<span className='text-white/90'>Zashi:</span> Settings → Connect to a server → custom, then enter
+												the host and port above.
+											</li>
+											<li>
+												<span className='text-white/90'>Ywallet:</span> Settings → lightwalletd server, then paste the
+												URI.
+											</li>
+											<li>
+												<span className='text-white/90'>Zingo:</span>{' '}
+												<code className='text-white/80'>zingo-cli --server {conn.uri || 'http://host:9067'}</code>
+											</li>
+										</ol>
+										<p className='text-white/60 text-[13px]'>
+											Wait until this node has finished syncing and lightwalletd has ingested the chain before connecting
+											a wallet.
+										</p>
 									</div>
 								</div>
 							</TabsContent>
 
-							{/* RPC tab */}
 							<TabsContent value='rpc' className='mt-0 min-h-[360px]'>
 								<div className='flex flex-col sm:flex-row gap-4'>
 									<ConnectionTypeAndQrCard net={net} setNet={setNet} conn={conn} />
-									{net === 'local' && (
-										<div className='sm:hidden'>
-											<LocalRPCAlert net={net} />
-										</div>
-									)}
 									<div className='divide-y divide-white/6 overflow-hidden rounded-xl w-full h-fit bg-gradient-to-b from-[#1C1C1C] to-[#0D0D0D]'>
-										<Field label='Username' value={conn.username} />
-										<Field label='Password' value={conn.password} />
 										<Field label='Host' value={conn.host} />
 										<Field label='Port' value={conn.port?.toString()} />
+										<Field label='URI' value={conn.uri} />
 									</div>
 								</div>
 								{net === 'local' && (
-									<div className='hidden sm:block mt-4'>
+									<div className='mt-4'>
 										<LocalRPCAlert net={net} />
 									</div>
 								)}
 							</TabsContent>
 
-							{/* P2P tab */}
 							<TabsContent value='p2p' className='mt-0 min-h-[360px]'>
 								<div className='flex flex-col sm:flex-row gap-4'>
 									<ConnectionTypeAndQrCard net={net} setNet={setNet} conn={conn} />
@@ -172,13 +171,11 @@ export default function ConnectionDetails() {
 }
 
 function Field({label, value}: {label: string; value?: string}) {
-	const blank = !value // true when no data
+	const blank = !value
 	const [open, setOpen] = useState(false)
 
 	const handleCopy = () => {
-		// return early if we have nothing to copy
 		if (blank) return
-
 		copy(value!)
 		setOpen(true)
 		setTimeout(() => setOpen(false), 600)
@@ -189,7 +186,6 @@ function Field({label, value}: {label: string; value?: string}) {
 			<span className='shrink-0 text-white'>{label}</span>
 
 			<div className='flex min-w-0 items-center justify-end gap-2'>
-				{/* show an em-dash when no data */}
 				<span
 					className='min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-normal text-white/60'
 					title={value}
@@ -204,7 +200,7 @@ function Field({label, value}: {label: string; value?: string}) {
 							variant='ghost'
 							size='sm'
 							onClick={handleCopy}
-							disabled={blank} // disabled when no data
+							disabled={blank}
 							className='h-4 w-4 shrink-0 p-0 hover:bg-transparent'
 						>
 							<Copy className='scale-75 text-white/70' />
@@ -223,10 +219,6 @@ function Field({label, value}: {label: string; value?: string}) {
 	)
 }
 
-// @wojtekmaj/react-qr-svg component
-// We could use the more popularreact-qr-code instead, but we can't do borders on the individual qr cells with that library
-// Note: If you are tweaking this, make sure that the code is readable afterwards. Cell borders and the logo overlay both reduce readability.
-// Increasing the `level` (error correction) can help.
 function QR({value}: {value?: string}) {
 	if (!value) {
 		return <div className='flex h-[196px] w-[196px] m-auto mb-4 items-center rounded-md bg-white/5' />
@@ -239,26 +231,23 @@ function QR({value}: {value?: string}) {
 					value={value}
 					width={200}
 					height={200}
-					level='Q' // Q = 25% error correction
-					fgColor='#9C4C00' // solid orange fill
-					bgColor='transparent' // transparent background
-					cellClassPrefix='qrPx' // produces .qrPx & .qrPx-filled that we can target with CSS
+					level='Q'
+					fgColor='#B8860B'
+					bgColor='transparent'
+					cellClassPrefix='qrPx'
 					style={{display: 'block', shapeRendering: 'crispEdges'}}
 				/>
 			</div>
 
-			{/* Umbrel logo overlay */}
 			<div className='absolute inset-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 p-2 shadow-md pointer-events-none select-none bg-[#1C1C1C]'>
 				<div className='w-full h-full flex items-center justify-center bg-white/10 rounded-md p-1.5'>
 					<UmbrelLogo className='w-full h-full text-white' />
 				</div>
 			</div>
 
-			{/* Correct selector: path.qrPx-filled */}
 			<style>{`
-        /* add a lighter-orange outline to each "filled" cell */
         .qrPx-filled {
-          stroke: #FF7E05 !important;
+          stroke: #F4B728 !important;
           stroke-width: 0.5px !important;
           stroke-linejoin: miter;
           vector-effect: non-scaling-stroke;
@@ -275,7 +264,7 @@ function ConnectionTypeAndQrCard({
 }: {
 	net: string
 	setNet: (v: 'tor' | 'local') => void
-	conn: ConnectionDetailsType['rpc']['tor']
+	conn: Partial<ConnectionDetailsType['rpc']['tor']>
 }) {
 	return (
 		<div className='bg-gradient-to-b from-[#1C1C1C] to-[#0D0D0D] p-5 rounded-xl'>
@@ -336,16 +325,15 @@ function LocalRPCAlert({net}: {net: string}) {
 					<Alert className='bg-[#EDCE0017] text-[#EDCE00] border-none'>
 						<TriangleAlert className='h-4 w-4' />
 						<AlertDescription className='text-[#EDCE00]'>
-							Using the Local network option sends your RPC username & password unencrypted over the network (e.g., café
-							Wi-Fi). To proceed, you must manually allow your wallet’s IP in the node’s RPC settings, and avoid
-							untrusted networks.
+							Zebra’s JSON-RPC has cookie auth disabled so lightwalletd can connect. Do not expose port 8232 to the
+							public internet.
 						</AlertDescription>
 					</Alert>
 
 					<Alert className='bg-[#00BFA317] text-[#00BFA3] border-none'>
 						<LockKeyhole className='h-4 w-4' />
 						<AlertDescription className='text-[#00BFA3]'>
-							Apps on the same Umbrel device are safe—traffic stays local and never leaves the machine.
+							Apps on the same Umbrel device stay on the local Docker network and never leave the machine.
 						</AlertDescription>
 					</Alert>
 				</motion.div>

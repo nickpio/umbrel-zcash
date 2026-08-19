@@ -52,43 +52,36 @@ export default function HomePage() {
 	let syncSubtitle: React.ReactNode | null = null
 	let dialogContent: {title: string; description: string} | null = null
 
-	// Good explanations from Peter Wuille on sync stages:
-	// - https://bitcoin.stackexchange.com/questions/121292/how-does-block-synchronization-work-in-bitcoin-core-today
-	// - https://bitcoin.stackexchange.com/questions/76018/how-does-headers-first-prevent-disk-fill-attack/121235#121235
 	switch (stage) {
 		case 'pre-headers':
-			// TODO: break this out into a component
 			syncSubtitle = (
 				<span className='relative inline-block select-none'>
-					{/* base, readable letters – stay white */}
-					<span className=''>Pre-synchronizing blockheaders</span>
-
-					{/* overlay highlight – slides over the same glyphs */}
+					<span className=''>Starting checkpoint sync</span>
 					<span aria-hidden className='absolute inset-0 animate-shimmer pointer-events-none'>
-						Pre-synchronizing blockheaders
+						Starting checkpoint sync
 					</span>
 				</span>
 			)
 			dialogContent = {
-				title: 'Pre-synchronizing Blockheaders',
+				title: 'Starting Checkpoint Sync',
 				description:
-					'Your node is undergoing the first stage of headers synchronization. It is downloading and verifying a complete list of blockheaders to be sure the chain that it will download is legitimate. These are being stored in memory only at this stage.',
+					'Zebra is connecting to peers and preparing to download checkpointed block history. This first stage is usually quick.',
 			}
 			break
 		case 'headers':
-			syncSubtitle = `${syncStatus?.blockHeight} of ${syncStatus?.validatedHeaderHeight} blocks`
+			syncSubtitle = `${syncStatus?.blockHeight} of ${syncStatus?.estimatedHeight || syncStatus?.validatedHeaderHeight} blocks`
 			dialogContent = {
-				title: 'Synchronizing Blockheaders',
+				title: 'Downloading Checkpoints',
 				description:
-					'Your node undergoing the last stage of headers synchronization. It is re-downloading and verifying all blockheaders that it now knows are, in fact, part of the chain with the most work.',
+					'Zebra is downloading and verifying checkpointed blocks in parallel. After this stage it continues with full consensus verification up to the tip.',
 			}
 			break
 		default:
-			syncSubtitle = `${syncStatus?.blockHeight} of ${syncStatus?.validatedHeaderHeight} blocks`
+			syncSubtitle = `${syncStatus?.blockHeight} of ${syncStatus?.estimatedHeight || syncStatus?.validatedHeaderHeight} blocks`
 			dialogContent = {
 				title: 'Synchronizing Blocks',
 				description:
-					'Your node is downloading blocks from connected peers, and fully verifying each one (e.g., checking consensus rules, script validity, subsidy, double-spends, etc). The sync percentage reflects how much total chain work has been verified, not the percentage of blocks that have been verified.',
+					'Zebra is downloading blocks from peers and fully verifying each one against Zcash consensus rules. The percentage reflects verified work, not just the count of blocks on disk.',
 			}
 			break
 	}
@@ -173,6 +166,9 @@ export default function HomePage() {
 										{percentSynced === 100 ? 'Synchronized' : 'Synchronizing'}&nbsp;
 									</span>
 									<span className='text-white/60'>{percentSynced}%</span>
+									{percentSynced === 100 && syncStatus && !syncStatus.walletReady && (
+										<div className='text-[14px] text-white/40 font-[400] mt-1'>Wallet server starting…</div>
+									)}
 								</motion.h2>
 							)}
 						</AnimatePresence>

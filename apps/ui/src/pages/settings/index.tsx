@@ -5,7 +5,6 @@ import {useEffect, useMemo, useRef, useState} from 'react'
 import {useSearchParams} from 'react-router-dom'
 import {useForm, FormProvider, Controller, useWatch, useFormState} from 'react-hook-form'
 import {Search} from 'lucide-react'
-import {AnimatePresence, motion} from 'framer-motion'
 import {zodResolver} from '@hookform/resolvers/zod'
 import clsx from 'clsx'
 import {toast} from 'sonner'
@@ -51,7 +50,6 @@ import {
 
 import {useSettings, useUpdateSettings, useRestoreDefaults} from '@/hooks/useSettings'
 import {useBitcoindExitInfo} from '@/hooks/useBitcoindExitInfo'
-import IncompatibleSettingsAlert from './IncompatibleSettingsAlert.js'
 
 type SettingName = string
 
@@ -414,7 +412,7 @@ export default function SettingsCard() {
 	// and select by current version, or cache the last {version,resolver} pair to avoid rebuilding.
 	const versionedResolver = useMemo(() => {
 		return async (values: any, ctx: any, opts: any) => {
-			const desired = (values?.version ?? 'latest') as string
+			const desired = ((values?.version ?? 'latest') as SelectedVersion) || 'latest'
 			const r = zodResolver(schemaForVersion(desired))
 			return r(values, ctx, opts)
 		}
@@ -438,7 +436,7 @@ export default function SettingsCard() {
 
 	// Live UI: resolve settings metadata for the current selection
 	// 1) Subscribe to the form's version field (can be 'latest' or a specific version)
-	const selectedVersion = (useWatch({control: form.control, name: 'version'}) as string) ?? 'latest'
+	const selectedVersion = 'latest'
 	// 2) Map the selection to a specific Core version (e.g., 'latest' → 'v30.0')
 	const targetVersion = resolveVersion(selectedVersion as SelectedVersion)
 	// 3) Materialize version-aware metadata used to render the fields and constraints
@@ -468,7 +466,7 @@ export default function SettingsCard() {
 	const onUpdateSettings = (data: SettingsSchema) => {
 		// If the mutation takes longer than 1 second, we show a loading toast
 		updateTimer.current = setTimeout(() => {
-			updateToastId.current = toast.loading('Hang tight, Bitcoin Core is restarting...', {duration: Infinity})
+			updateToastId.current = toast.loading('Hang tight, Zebra is restarting...', {duration: Infinity})
 		}, 1000)
 
 		updateSettings.mutate(data, {
@@ -505,7 +503,7 @@ export default function SettingsCard() {
 	const onRestoreDefaults = () => {
 		// If the mutation takes longer than 1 second, we show a loading toast
 		restoreTimer.current = setTimeout(() => {
-			restoreToastId.current = toast.loading('Hang tight, Bitcoin Core is restarting...', {duration: Infinity})
+			restoreToastId.current = toast.loading('Hang tight, Zebra is restarting...', {duration: Infinity})
 		}, 1000)
 
 		restoreDefaults.mutate(undefined, {
@@ -559,10 +557,7 @@ export default function SettingsCard() {
 	// This array drives both the tab triggers (navigation) and tab content rendering
 	const tabs = [
 		{value: 'peers', label: 'Peer Settings'},
-		{value: 'optimization', label: 'Optimization'},
-		{value: 'rpc-rest', label: 'Interfaces'},
-		{value: 'network', label: 'Network Selection'},
-		{value: 'version', label: 'Bitcoin Core Version'},
+		{value: 'network', label: 'Network'},
 		{value: 'advanced', label: 'Advanced'},
 	] as const
 
@@ -651,28 +646,6 @@ export default function SettingsCard() {
 											{/* Render tab content dynamically from the tabs configuration */}
 											{tabs.map((tab) => (
 												<TabsContent key={tab.value} value={tab.value} className='space-y-6 pt-6'>
-													{/* Special handling for version tab since we have a special error alert for it */}
-													{tab.value === 'version' && (
-														<AnimatePresence mode='wait' initial={false}>
-															{currentTab === 'version' && Object.values(form.formState.errors).length > 0 && (
-																<motion.div
-																	initial={{height: 0, opacity: 0, marginBottom: 0}}
-																	animate={{height: 'auto', opacity: 1, marginBottom: 20}}
-																	exit={{height: 0, opacity: 0, marginBottom: 0}}
-																	transition={{
-																		type: 'spring',
-																		stiffness: 250,
-																		damping: 30,
-																		duration: 0.45,
-																	}}
-																	style={{overflow: 'hidden'}}
-																>
-																	<IncompatibleSettingsAlert />
-																</motion.div>
-															)}
-														</AnimatePresence>
-													)}
-
 													{/* Special handling for advanced tab since it renders unique content (custom config editor etc.) */}
 													{/* Currently we don't have anything from settings.meta.ts that shows up in advanced. */}
 													{tab.value === 'advanced' && (
@@ -717,21 +690,7 @@ export default function SettingsCard() {
 												will not overwrite any custom overrides you've set under the "Advanced" tab on the Settings
 												page.
 											</p>
-											{(() => {
-												const currentVersion = form.getValues().version ?? 'latest'
-												if (currentVersion !== 'latest') {
-													return (
-														<div className='bg-orange-500/10 border border-orange-500/20 rounded-md p-3'>
-															<p className='text-orange-200 text-xs'>
-																You have manually chosen to stay on Bitcoin Core Version {currentVersion}. Restoring
-																defaults will use the default settings for Bitcoin Core {currentVersion}, not the latest
-																version.
-															</p>
-														</div>
-													)
-												}
-												return null
-											})()}
+											{null}
 										</AlertDialogDescription>
 									</AlertDialogHeader>
 

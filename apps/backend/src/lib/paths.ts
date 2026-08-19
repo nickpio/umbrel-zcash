@@ -2,35 +2,20 @@ import path from 'node:path'
 import {fileURLToPath} from 'node:url'
 import fse from 'fs-extra'
 
-// bitcoind binary
-export const BITCOIND_BIN = process.env['BITCOIND_BIN'] || 'bitcoind'
+export const ZEBRAD_BIN = process.env['ZEBRAD_BIN'] || 'zebrad'
+export const LIGHTWALLETD_BIN = process.env['LIGHTWALLETD_BIN'] || 'lightwalletd'
 
-// bitcoin wrapper binary used for multiprocess mode
-export const BITCOIN_BIN = process.env['BITCOIN_BIN'] || 'bitcoin'
-
-// Absolute path to the monorepo root
 export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../')
 
-// bitcoind -datadir (data/bitcoin)
-export const BITCOIN_DIR = process.env['BITCOIN_DIR'] || path.join(REPO_ROOT, 'data', 'bitcoin')
-
-// app config data dir (data/app)
+export const ZEBRA_DIR = process.env['CHAIN_STATE_DIR'] || process.env['ZEBRA_DIR'] || path.join(REPO_ROOT, 'data', 'zebra')
 export const APP_STATE_DIR = process.env['APP_STATE_DIR'] || path.join(REPO_ROOT, 'data', 'app')
+export const LIGHTWALLETD_DIR = process.env['LIGHTWALLETD_DIR'] || path.join(REPO_ROOT, 'data', 'lightwalletd')
 
-// settings.json file path
 export const SETTINGS_JSON = path.join(APP_STATE_DIR, 'settings.json')
+export const ZEBRAD_TOML = path.join(APP_STATE_DIR, 'zebrad.toml')
+export const CUSTOM_TOML = path.join(APP_STATE_DIR, 'custom.toml')
+export const ZCASH_CONF = path.join(APP_STATE_DIR, 'zcash.conf')
 
-// bitcoin.conf file paths
-export const BITCOIN_CONF = path.join(BITCOIN_DIR, 'bitcoin.conf')
-export const UMBREL_BITCOIN_CONF = path.join(BITCOIN_DIR, 'umbrel-bitcoin.conf')
-
-// Bitcoin Core installation path for bitcoind versions
-export const BITCOIN_CORE_VERSIONS_DIR = '/opt/bitcoind'
-
-// Symbolic link for default bitcoind binary
-export const BITCOIN_CORE_CURRENT_SYMLINK = `${BITCOIN_CORE_VERSIONS_DIR}/current`
-
-// Ensure that the required data directories exist
 export async function ensureDirs() {
-	await Promise.all([fse.ensureDir(BITCOIN_DIR), fse.ensureDir(APP_STATE_DIR)])
+	await Promise.all([fse.ensureDir(ZEBRA_DIR), fse.ensureDir(APP_STATE_DIR), fse.ensureDir(LIGHTWALLETD_DIR)])
 }
