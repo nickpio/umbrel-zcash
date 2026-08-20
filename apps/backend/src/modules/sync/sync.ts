@@ -3,6 +3,10 @@ import {lightwalletd} from '../bitcoind/bitcoind.js'
 
 import type {SyncStatus} from '#types'
 
+// ~30 minutes of Zcash blocks. A new block makes estimatedheight jump first;
+// that live catch-up is not IBD.
+export const NEAR_TIP_BLOCKS = 24
+
 export async function syncStatus(): Promise<SyncStatus> {
 	const info = await rpcClient.command<{
 		verificationprogress: number
@@ -12,16 +16,19 @@ export async function syncStatus(): Promise<SyncStatus> {
 		estimatedheight?: number
 	}>('getblockchaininfo')
 
-	const estimatedHeight = info.estimatedheight ?? Math.max(info.headers, info.blocks)
-	const behindTip = estimatedHeight > 0 && info.blocks < estimatedHeight
+	const estimatedHeight = info.estimatedheight ?? 0
+	const displayTip = estimatedHeight || Math.max(info.headers, info.blocks)
+	const behindBy = estimatedHeight > 0 ? Math.max(0, estimatedHeight - info.blocks) : 0
+	const progress = info.verificationprogress ?? 0
 
 	return {
-		syncProgress: info.verificationprogress,
-		// Zebra omits Bitcoin's initialblockdownload flag; treat "below estimated tip" as IBD.
-		isInitialBlockDownload: info.initialblockdownload ?? behindTip,
+		syncProgress: progress,
+		isInitialBlockDownload:
+			info.initialblockdownload ??
+			(behindBy > NEAR_TIP_BLOCKS || (estimatedHeight === 0 && progress > 0 && progress < 0.995)),
 		blockHeight: info.blocks,
-		validatedHeaderHeight: info.headers || estimatedHeight,
-		estimatedHeight,
+		validatedHeaderHeight: info.headers || displayTip,
+		estimatedHeight: displayTip,
 		walletReady: lightwalletd.status().running,
 	}
 }

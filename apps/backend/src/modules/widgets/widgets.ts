@@ -13,6 +13,7 @@ function calcSyncPercent(status: SyncStatus | undefined): number {
 
 	const {blockHeight, estimatedHeight, syncProgress} = status
 
+	if (status.blockHeight > 0 && !status.isInitialBlockDownload) return 100
 	if (estimatedHeight > 0 && blockHeight >= estimatedHeight) return 100
 	return Math.floor((syncProgress || 0) * 10000) / 100
 }

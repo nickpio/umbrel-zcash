@@ -6,6 +6,7 @@ import PQueue from 'p-queue'
 
 import {rpcClient} from '../bitcoind/rpc-client.js'
 import {bitcoind} from '../bitcoind/bitcoind.js'
+import {NEAR_TIP_BLOCKS} from '../sync/sync.js'
 import {blockStream} from './zmq-subscriber.js'
 
 import type {Block, RawBlock, RawTransaction} from '#types'
@@ -25,7 +26,7 @@ function networkTip(info: ChainTipInfo): number {
 
 function isAtNetworkTip(info: ChainTipInfo): boolean {
 	const tip = networkTip(info)
-	return info.blocks > 0 && tip > 0 && info.blocks >= tip
+	return info.blocks > 0 && tip > 0 && tip - info.blocks <= NEAR_TIP_BLOCKS
 }
 
 function computeSubsidy(height: number): number {
