@@ -67,5 +67,5 @@ export async function waitForRpc(timeoutMs = 180_000, pollMs = 1_000): Promise<v
 			await new Promise((resolve) => setTimeout(resolve, pollMs))
 		}
 	}
-	throw new Error(`Zebra RPC at ${url} did not become ready within ${timeoutMs}ms`)
+	throw new Error(`Node RPC at ${url} did not become ready within ${timeoutMs}ms`)
 }

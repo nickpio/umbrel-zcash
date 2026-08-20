@@ -20,7 +20,7 @@ try {
 // Start bitcoind without blocking server start
 bootBitcoind().catch((error) => {
 	bitcoind.setLastError(error as Error) // record for /status
-	app.log.error(error, 'Zebra bootstrap failed.')
+	app.log.error(error, 'Node bootstrap failed.')
 })
 
 // Create the HTTP server and register the routes

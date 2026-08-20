@@ -1,14 +1,18 @@
+import path from 'node:path'
 import fse from 'fs-extra'
 import {writeWithBackup} from './fs-helpers.js'
 
-import {APP_STATE_DIR, CUSTOM_TOML, SETTINGS_JSON, ZCASH_CONF, ZEBRA_DIR, ZEBRAD_TOML} from '../../lib/paths.js'
-import {restart} from '../bitcoind/bitcoind.js'
+import {APP_STATE_DIR, CUSTOM_TOML, SETTINGS_JSON, ZAKURA_DIR, ZCASH_CONF, ZEBRA_DIR, ZEBRAD_TOML} from '../../lib/paths.js'
+import {restart, start as startNode, stop as stopNode} from '../bitcoind/bitcoind.js'
 import {
 	DefaultValuesForVersion,
+	implementationForVersion,
 	LATEST,
+	normalizeSelectedVersion,
 	resolveVersion,
 	schemaForVersion,
 	settingsMetadataForVersion,
+	type NodeImplementation,
 	type SettingsSchema,
 	type SelectedVersion,
 } from '#settings'
@@ -17,11 +21,15 @@ const NON_TOML_KEYS = new Set<string>(['version'])
 
 let cachedSettings: SettingsSchema | undefined
 
+function selectedVersionFrom(input: {version?: unknown} | Partial<SettingsSchema>): SelectedVersion {
+	return normalizeSelectedVersion((input as {version?: unknown}).version)
+}
+
 function mergeWithDefaults(partial: Partial<SettingsSchema>): SettingsSchema {
-	const selectedVersion = ((partial as {version?: SelectedVersion})?.version ?? LATEST) as SelectedVersion
+	const selectedVersion = selectedVersionFrom(partial)
 	const resolvedVersion = resolveVersion(selectedVersion)
 	const defaults = DefaultValuesForVersion(resolvedVersion) as Record<string, unknown>
-	return {...defaults, ...partial} as SettingsSchema
+	return {...defaults, ...partial, version: selectedVersion} as SettingsSchema
 }
 
 function filterSettingsForVersion(input: Record<string, unknown>, selectedVersion: SelectedVersion): Record<string, unknown> {
@@ -41,8 +49,8 @@ async function loadAndValidateSettings(): Promise<SettingsSchema> {
 		;(partial as Record<string, unknown>)['chain'] = process.env['DEFAULT_CHAIN']
 	}
 
-	const selectedVersion = (partial?.version as SelectedVersion) ?? LATEST
-	const merged = mergeWithDefaults(partial)
+	const selectedVersion = selectedVersionFrom(partial)
+	const merged = mergeWithDefaults({...partial, version: selectedVersion})
 	const filtered = filterSettingsForVersion(merged as Record<string, unknown>, selectedVersion)
 	return schemaForVersion(selectedVersion).parse(filtered) as SettingsSchema
 }
@@ -76,7 +84,7 @@ function generateManagedToml(settings: SettingsSchema): string {
 		'parallel_cpu_threads = 0',
 		'',
 		'[state]',
-		`cache_dir = ${tomlString(ZEBRA_DIR)}`,
+		`cache_dir = ${tomlString(chainStateDirForSettings(settings))}`,
 		'',
 	]
 
@@ -151,7 +159,7 @@ function mergeToml(generated: string, custom: string): string {
 function generateZcashConf(): string {
 	const rpcPort = process.env['RPC_PORT'] || '8232'
 	return [
-		'# Used by lightwalletd to find this node. Zebra ignores rpcuser/rpcpassword when cookie auth is off.',
+		'# Used by lightwalletd to find this node. Cookie auth is disabled so these credentials are ignored.',
 		'rpcbind=127.0.0.1',
 		`rpcport=${rpcPort}`,
 		'rpcuser=lightwalletd',
@@ -167,11 +175,47 @@ async function writeGeneratedFiles(settings: SettingsSchema): Promise<void> {
 	await writeWithBackup(ZCASH_CONF, generateZcashConf())
 }
 
+function implementationFromSettings(settings: {version?: unknown} | SettingsSchema): NodeImplementation {
+	return implementationForVersion(resolveVersion(selectedVersionFrom(settings)))
+}
+
+function chainStateDirForSettings(settings: SettingsSchema): string {
+	return implementationFromSettings(settings) === 'zakura' ? ZAKURA_DIR : ZEBRA_DIR
+}
+
+function unusedChainDir(keep: NodeImplementation): string {
+	return keep === 'zakura' ? ZEBRA_DIR : ZAKURA_DIR
+}
+
+async function removeUnusedChainState(keep: NodeImplementation): Promise<void> {
+	const keepDir = path.resolve(keep === 'zakura' ? ZAKURA_DIR : ZEBRA_DIR)
+	const unusedDir = path.resolve(unusedChainDir(keep))
+	const allowed = new Set([path.resolve(ZEBRA_DIR), path.resolve(ZAKURA_DIR)])
+
+	if (unusedDir === keepDir || !allowed.has(unusedDir) || !allowed.has(keepDir)) {
+		console.error('[config] refusing to remove chain state; keep and unused paths are unsafe')
+		return
+	}
+
+	if (await fse.pathExists(unusedDir)) {
+		console.log(`[config] removing unused chain state at ${unusedDir}`)
+		await fse.emptyDir(unusedDir)
+	}
+	await fse.ensureDir(keepDir)
+}
+
+async function restartWithSingleChain(settings: SettingsSchema): Promise<void> {
+	await stopNode()
+	await removeUnusedChainState(implementationFromSettings(settings))
+	await startNode()
+}
+
 export async function ensureConfig(): Promise<SettingsSchema> {
 	await fse.ensureDir(APP_STATE_DIR)
-	await fse.ensureDir(ZEBRA_DIR)
 
 	const settings = await loadAndValidateSettings()
+	await removeUnusedChainState(implementationFromSettings(settings))
+	cachedSettings = settings
 	const contents = JSON.stringify(settings, null, 2) + '\n'
 	await writeWithBackup(SETTINGS_JSON, contents)
 	await writeGeneratedFiles(settings)
@@ -185,24 +229,25 @@ export async function getSettings(): Promise<SettingsSchema> {
 
 export async function updateSettings(patch: Partial<SettingsSchema>): Promise<SettingsSchema> {
 	const current = await getSettings()
-	const selectedVersion = ((patch as {version?: SelectedVersion})?.version ??
-		(current as {version?: SelectedVersion})?.version ??
-		LATEST) as SelectedVersion
+	const selectedVersion = selectedVersionFrom({
+		version: (patch as {version?: unknown}).version ?? (current as {version?: unknown}).version,
+	})
 	const resolvedVersion = resolveVersion(selectedVersion)
 
 	const mergedWithDefaults = {
 		...(DefaultValuesForVersion(resolvedVersion) as Record<string, unknown>),
 		...(current as Record<string, unknown>),
 		...(patch as Record<string, unknown>),
+		version: selectedVersion,
 	}
 	const filtered = filterSettingsForVersion(mergedWithDefaults as Record<string, unknown>, selectedVersion)
 	const merged = schemaForVersion(selectedVersion).parse(filtered) as SettingsSchema
 
+	cachedSettings = merged
 	await writeWithBackup(SETTINGS_JSON, JSON.stringify(merged, null, 2) + '\n')
 	await writeGeneratedFiles(merged)
-	await restart()
+	await restartWithSingleChain(merged)
 
-	cachedSettings = merged
 	return merged
 }
 
@@ -210,11 +255,11 @@ export async function restoreDefaults(): Promise<SettingsSchema> {
 	const defaults = DefaultValuesForVersion(resolveVersion(LATEST)) as SettingsSchema
 	if (process.env['DEFAULT_CHAIN']) (defaults as Record<string, unknown>)['chain'] = process.env['DEFAULT_CHAIN']
 
+	cachedSettings = defaults
 	await writeWithBackup(SETTINGS_JSON, JSON.stringify(defaults, null, 2) + '\n')
 	await writeGeneratedFiles(defaults)
-	await restart()
+	await restartWithSingleChain(defaults)
 
-	cachedSettings = defaults
 	return defaults
 }
 

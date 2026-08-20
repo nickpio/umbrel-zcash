@@ -1,7 +1,7 @@
 import {ZebradManager} from './manager.js'
 import {LightwalletdManager} from '../lightwalletd/manager.js'
 import {waitForRpc} from './rpc-client.js'
-import {ensureConfig} from '../config/config.js'
+import {ensureConfig, getSettings} from '../config/config.js'
 
 import type {BitcoindVersion, BitcoindStatus, BitcoindLifecycleResponse, ExitInfo} from '#types'
 import type WebSocket from 'ws'
@@ -14,12 +14,13 @@ async function startLightwalletdWhenReady(): Promise<void> {
 		await waitForRpc()
 		lightwalletd.start()
 	} catch (error) {
-		console.error('[boot] lightwalletd not started; Zebra RPC never became ready:', error)
+		console.error('[boot] lightwalletd not started; node RPC never became ready:', error)
 	}
 }
 
 export async function bootBitcoind(): Promise<void> {
-	await ensureConfig()
+	const settings = await ensureConfig()
+	bitcoind.configure(settings)
 	bitcoind.start()
 	void startLightwalletdWhenReady()
 }
@@ -31,8 +32,9 @@ export const status = (): BitcoindStatus => ({
 	lightwalletdRunning: lightwalletd.status().running,
 })
 
-export const start = (): BitcoindLifecycleResponse => {
+export const start = async (): Promise<BitcoindLifecycleResponse> => {
 	if (status().running) return {...status(), result: 'no_op'}
+	bitcoind.configure(await getSettings())
 	bitcoind.start()
 	void startLightwalletdWhenReady()
 	return {...status(), result: 'started'}
@@ -47,6 +49,7 @@ export const stop = async (): Promise<BitcoindLifecycleResponse> => {
 
 export const restart = async (): Promise<BitcoindLifecycleResponse> => {
 	await lightwalletd.stop()
+	bitcoind.configure(await getSettings())
 	await bitcoind.restart()
 	void startLightwalletdWhenReady()
 	return {...status(), result: 'started'}

@@ -48,6 +48,7 @@ services:
       - 1.1.1.1
     environment:
       CHAIN_STATE_DIR: /data/zebra
+      ZAKURA_DIR: /data/zakura
       APP_STATE_DIR: /data/app
       LIGHTWALLETD_DIR: /data/lightwalletd
       APPS_SUBNET: '10.21.0.0/16'

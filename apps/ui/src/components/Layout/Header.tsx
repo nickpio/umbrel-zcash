@@ -14,7 +14,8 @@ export default function Header({className}: {className?: string}) {
 
 	// Remove the 'v' prefix from the version string if it exists
 	const cleanedVersion = version?.version?.replace(/^v/i, '')
-	const fullVersionString = `${placeholder} ${cleanedVersion ?? ''}`
+	const implementation = version?.implementation || placeholder
+	const fullVersionString = `${implementation} ${cleanedVersion ?? ''}`
 
 	return (
 		<header className={cn('flex items-end md:items-center justify-between mb-6 md:mb-8 w-full', className)}>

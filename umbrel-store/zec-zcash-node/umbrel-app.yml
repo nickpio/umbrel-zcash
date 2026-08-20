@@ -5,8 +5,9 @@ name: Zcash Node
 version: 0.1.6
 tagline: Run your own Zcash full node
 description: >-
-  Run a Zcash full node on umbrelOS, powered by Zebra, with a lightwalletd
-  wallet server so Zashi, Ywallet, and Zingo can connect to your own node.
+  Run a Zcash full node on umbrelOS, powered by Zebra or Zakura, with a
+  lightwalletd wallet server so Zashi, Ywallet, and Zingo can connect to your
+  own node.
 releaseNotes: >-
   Keep the dashboard in synced mode when a new block arrives instead of
   flipping back to synchronizing.
@@ -31,6 +32,7 @@ widgets:
     endpoint: app:3000/api/widget/sync
 backupIgnore:
   - data/zebra
+  - data/zakura
   - data/lightwalletd
 submitter: Community
 submission: https://github.com/zcash/zcash-node-gui

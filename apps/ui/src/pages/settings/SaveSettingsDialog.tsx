@@ -8,7 +8,13 @@ import {
 	AlertDialogCancel,
 	AlertDialogAction,
 } from '@/components/ui/alert-dialog'
-import {type SettingsSchema} from '#settings'
+import {
+	implementationForVersion,
+	implementationLabel,
+	normalizeSelectedVersion,
+	resolveVersion,
+	type SettingsSchema,
+} from '#settings'
 
 interface SaveSettingsDialogProps {
 	open: boolean
@@ -18,7 +24,11 @@ interface SaveSettingsDialogProps {
 	formValues: SettingsSchema
 }
 
-export default function SaveSettingsDialog({open, onOpenChange, onSave}: SaveSettingsDialogProps) {
+export default function SaveSettingsDialog({open, onOpenChange, onSave, initialSettings, formValues}: SaveSettingsDialogProps) {
+	const nextVersion = resolveVersion(normalizeSelectedVersion(formValues?.['version']))
+	const previousVersion = resolveVersion(normalizeSelectedVersion(initialSettings?.['version']))
+	const nodeName = implementationLabel(nextVersion)
+	const switchingImplementation = implementationForVersion(previousVersion) !== implementationForVersion(nextVersion)
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
 			<AlertDialogContent className='bg-card-gradient backdrop-blur-2xl border-white/10 border-[0.5px] rounded-2xl'>
@@ -27,7 +37,13 @@ export default function SaveSettingsDialog({open, onOpenChange, onSave}: SaveSet
 						Save changes?
 					</AlertDialogTitle>
 					<AlertDialogDescription className='text-white/60 text-left text-[13px] space-y-3'>
-						<span className='text-[13px]'>Zebra and lightwalletd will restart to apply these settings.</span>
+						<span className='text-[13px]'>{nodeName} and lightwalletd will restart to apply these settings.</span>
+						{switchingImplementation && (
+							<span className='block text-[13px]'>
+								This deletes the {implementationLabel(previousVersion)} chain to free disk space.{' '}
+								{nodeName} will sync from scratch.
+							</span>
+						)}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>

@@ -1,13 +1,36 @@
-// Single source of truth for Zebra settings: validation schema, defaults, and the Settings UI.
+// Single source of truth for node settings: validation schema, defaults, and the Settings UI.
 
-export const AVAILABLE_BITCOIN_CORE_VERSIONS = ['v6.3.0'] as const
+export const AVAILABLE_BITCOIN_CORE_VERSIONS = ['zebra-v6.3.0', 'zakura-v1.2.0'] as const
 
 export const DEFAULT_BITCOIN_CORE_VERSION = AVAILABLE_BITCOIN_CORE_VERSIONS[0]
 export type BitcoinCoreVersion = (typeof AVAILABLE_BITCOIN_CORE_VERSIONS)[number]
+export type NodeImplementation = 'zebra' | 'zakura'
 
 export const LATEST = 'latest' as const
 export const VERSION_CHOICES = [LATEST, ...AVAILABLE_BITCOIN_CORE_VERSIONS] as const
 export type SelectedVersion = (typeof VERSION_CHOICES)[number]
+
+const LEGACY_VERSIONS: Record<string, SelectedVersion> = {
+	'v6.3.0': 'zebra-v6.3.0',
+	zebra: 'zebra-v6.3.0',
+	zakura: 'zakura-v1.2.0',
+}
+
+export function normalizeSelectedVersion(raw: unknown): SelectedVersion {
+	if (typeof raw === 'string' && (VERSION_CHOICES as readonly string[]).includes(raw)) {
+		return raw as SelectedVersion
+	}
+	if (typeof raw === 'string' && raw in LEGACY_VERSIONS) return LEGACY_VERSIONS[raw]
+	return LATEST
+}
+
+export function implementationForVersion(version: BitcoinCoreVersion): NodeImplementation {
+	return version.startsWith('zakura-') ? 'zakura' : 'zebra'
+}
+
+export function implementationLabel(version: BitcoinCoreVersion): string {
+	return implementationForVersion(version) === 'zakura' ? 'Zakura' : 'Zebra'
+}
 
 export type Tab = 'peers' | 'network' | 'advanced'
 
@@ -69,6 +92,21 @@ export type VersionedOption = Option & {
 }
 
 export const settingsMetadata = {
+	version: {
+		tab: 'network',
+		kind: 'select',
+		label: 'Node Implementation',
+		bitcoinLabel: 'version',
+		description:
+			'Choose which Zcash node to run. Only one chain is kept on disk: switching deletes the other implementation’s chain to free space, then syncs from scratch. The node and lightwalletd restart when you save.',
+		options: [
+			{value: LATEST, label: 'Latest (Zebra 6.3.0)'},
+			{value: 'zebra-v6.3.0', label: 'Zebra 6.3.0'},
+			{value: 'zakura-v1.2.0', label: 'Zakura 1.2.0'},
+		],
+		default: LATEST,
+	},
+
 	listen: {
 		tab: 'peers',
 		kind: 'toggle',
@@ -84,7 +122,7 @@ export const settingsMetadata = {
 		kind: 'number',
 		label: 'Target Peer Count',
 		bitcoinLabel: 'network.peerset_initial_target_size',
-		description: 'How many outbound peers Zebra tries to keep. Higher values use more bandwidth and memory.',
+		description: 'How many outbound peers the node tries to keep. Higher values use more bandwidth and memory.',
 		min: 1,
 		max: 200,
 		step: 1,
@@ -97,7 +135,7 @@ export const settingsMetadata = {
 		kind: 'number',
 		label: 'Max Connections per IP',
 		bitcoinLabel: 'network.max_connections_per_ip',
-		description: 'Limit how many peers from the same IP address Zebra will accept. Helps against sybil-style flooding.',
+		description: 'Limit how many peers from the same IP address the node will accept. Helps against sybil-style flooding.',
 		min: 1,
 		max: 50,
 		step: 1,
@@ -111,7 +149,7 @@ export const settingsMetadata = {
 		label: 'Zcash Network',
 		bitcoinLabel: 'network.network',
 		description:
-			'Choose which Zcash chain this node follows. Switching networks uses a separate chain state directory and will restart Zebra and lightwalletd. Connected wallets must be pointed at the matching network.',
+			'Choose which Zcash chain this node follows. Switching networks uses a separate chain state directory and will restart the node and lightwalletd. Connected wallets must be pointed at the matching network.',
 		options: [
 			{value: 'Mainnet', label: 'Mainnet'},
 			{value: 'Testnet', label: 'Testnet'},
@@ -121,7 +159,8 @@ export const settingsMetadata = {
 } satisfies Record<string, VersionedOption>
 
 export function resolveVersion(desired: SelectedVersion): BitcoinCoreVersion {
-	return desired === LATEST ? DEFAULT_BITCOIN_CORE_VERSION : desired
+	const normalized = normalizeSelectedVersion(desired)
+	return normalized === LATEST ? DEFAULT_BITCOIN_CORE_VERSION : normalized
 }
 
 export function settingsMetadataForVersion(version: BitcoinCoreVersion) {
