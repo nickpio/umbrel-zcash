@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto'
+import {isIP} from 'node:net'
 import geoip from 'geoip-lite'
 import rawCities from 'cities.json' with {type: 'json'}
 
@@ -116,16 +117,41 @@ const fallbackCityRecords: CityRecord[] = fallbackCityKeys.map((key) => {
 	return city
 })
 
+export function isPublicIp(ip: string): boolean {
+	const version = isIP(ip)
+	if (version === 4) {
+		const [a, b] = ip.split('.').map(Number)
+		if (a === 0 || a === 10 || a === 127) return false
+		if (a === 169 && b === 254) return false
+		if (a === 192 && b === 168) return false
+		if (a === 172 && b >= 16 && b <= 31) return false
+		if (a === 100 && b >= 64 && b <= 127) return false
+		return true
+	}
+	if (version === 6) {
+		const lower = ip.toLowerCase()
+		if (lower === '::1' || lower === '::') return false
+		if (lower.startsWith('fe80:') || lower.startsWith('fc') || lower.startsWith('fd')) return false
+		if (lower.startsWith('::ffff:')) return isPublicIp(ip.slice(ip.lastIndexOf(':') + 1))
+		return true
+	}
+	return false
+}
+
+export function publicIpToLatLng(ip: string, network: string): LatLng | null {
+	if ((network !== 'ipv4' && network !== 'ipv6') || !isPublicIp(ip)) return null
+	const geo = geoip.lookup(ip)
+	if (!geo?.ll) return null
+	return [geo.ll[0], geo.ll[1]]
+}
+
 // Returns a latitude and longitude for a given IP address and network
 // If it is an ipv4 or ipv6 address, it will return the latitude and longitude of the city from the geoip database
 // If it is a private IP address, or is not in the geoip database version installed, or it is a
 // Tor, I2P, or other unroutable network then it will return a deterministic fake city from 64-entry curated list of cities
 export function ipToLatLng(ip: string, network: string): LatLng {
-	if (network === 'ipv4' || network === 'ipv6') {
-		const geo = geoip.lookup(ip)
-		if (geo?.ll) return [geo.ll[0], geo.ll[1]]
-	}
-	// deterministic fallback
+	const located = publicIpToLatLng(ip, network)
+	if (located) return located
 	const idx = createHash('md5').update(ip).digest()[0] & 63 // 0-63
 	const {lat, lng} = fallbackCityRecords[idx]
 	return [Number(lat), Number(lng)]

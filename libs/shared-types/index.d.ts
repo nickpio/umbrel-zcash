@@ -58,7 +58,7 @@ export type PeerLocation = {
 }
 
 export type PeerLocationsResponse = {
-	userLocation: [number, number]
+	userLocation: [number, number] | null
 	peers: PeerLocation[]
 }
 

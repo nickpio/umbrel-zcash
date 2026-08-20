@@ -1,6 +1,6 @@
 import {rpcClient} from '../bitcoind/rpc-client.js'
 
-import {ipToLatLng} from './ip-to-location.js'
+import {ipToLatLng, isPublicIp, publicIpToLatLng} from './ip-to-location.js'
 
 import type {PeerInfo, PeerCount, PeerLocation, PeerLocationsResponse} from '#types'
 
@@ -72,25 +72,30 @@ export async function peerLocations(): Promise<PeerLocationsResponse> {
 		}
 	})
 
-	const hostTally = new Map<string, number>()
+	// Zebra has no addrlocal. Never invent a city (the old fallback was Brasília).
+	const hostTally = new Map<string, {count: number; network: string}>()
 	for (const peer of peersInfo) {
 		const {addrlocal, network} = peer
 		if (!addrlocal) continue
 		if (network !== 'ipv4' && network !== 'ipv6') continue
 		const host = hostFromAddr(addrlocal)
-		hostTally.set(host, (hostTally.get(host) ?? 0) + 1)
+		if (!isPublicIp(host)) continue
+		const current = hostTally.get(host)
+		hostTally.set(host, {count: (current?.count ?? 0) + 1, network})
 	}
 
 	let topHost = ''
+	let topNetwork = 'ipv4'
 	let topCount = 0
-	for (const [host, count] of hostTally) {
+	for (const [host, {count, network}] of hostTally) {
 		if (count > topCount) {
 			topHost = host
+			topNetwork = network
 			topCount = count
 		}
 	}
 
-	const userLocation: [number, number] = topHost ? ipToLatLng(topHost, 'ipv4') : [-15.7942, -47.8822]
+	const userLocation = topHost ? publicIpToLatLng(topHost, topNetwork) : null
 
 	return {userLocation, peers}
 }
