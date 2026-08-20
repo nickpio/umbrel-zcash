@@ -5,11 +5,15 @@ import type {Block, Stats} from '#types'
 import type {PeerInfo} from '#types'
 
 import {api} from '@/lib/api'
+import {syncStage} from '@/lib/sync-progress'
+import {useSyncStatus} from '@/hooks/useSyncStatus'
 
 const NUM_BLOCKS = 200
 
 export function usePrefetchInsights() {
 	const queryClient = useQueryClient()
+	const {data: syncStatus} = useSyncStatus()
+	const stage = syncStage(syncStatus)
 
 	useEffect(() => {
 		const prefetch = () => {
@@ -17,10 +21,13 @@ export function usePrefetchInsights() {
 				queryKey: ['rpc', 'stats'],
 				queryFn: () => api<Stats>('/rpc/stats'),
 			})
-			queryClient.prefetchQuery({
-				queryKey: ['rpc', 'blocks', NUM_BLOCKS],
-				queryFn: () => api<Block[]>(`/rpc/blocks?limit=${NUM_BLOCKS}`),
-			})
+			// 200 full blocks during Zebra IBD saturates RPC and makes sync look stuck.
+			if (stage === 'synced') {
+				queryClient.prefetchQuery({
+					queryKey: ['rpc', 'blocks', NUM_BLOCKS],
+					queryFn: () => api<Block[]>(`/rpc/blocks?limit=${NUM_BLOCKS}`),
+				})
+			}
 			queryClient.prefetchQuery({
 				queryKey: ['rpc', 'peers', 'info'],
 				queryFn: () => api<PeerInfo[]>('/rpc/peers/info'),
@@ -34,5 +41,5 @@ export function usePrefetchInsights() {
 
 		// Cleanup on unmount
 		return () => cancelAnimationFrame(id)
-	}, [queryClient])
+	}, [queryClient, stage])
 }

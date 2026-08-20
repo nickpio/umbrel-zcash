@@ -5,7 +5,13 @@ import {Toaster} from '@/components/ui/sonner'
 
 import {router} from '@/routes'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: {
+			retry: 1,
+		},
+	},
+})
 
 export default function App() {
 	return (

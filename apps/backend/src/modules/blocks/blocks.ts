@@ -12,6 +12,22 @@ import type {Block, RawBlock, RawTransaction} from '#types'
 
 const rpcQueue = new PQueue({concurrency: 10})
 
+type ChainTipInfo = {
+	blocks: number
+	headers?: number
+	estimatedheight?: number
+}
+
+// Zebra reports blocks == headers during checkpoint sync. The real tip is estimatedheight.
+function networkTip(info: ChainTipInfo): number {
+	return info.estimatedheight || Math.max(info.headers ?? 0, info.blocks)
+}
+
+function isAtNetworkTip(info: ChainTipInfo): boolean {
+	const tip = networkTip(info)
+	return info.blocks > 0 && tip > 0 && info.blocks >= tip
+}
+
 function computeSubsidy(height: number): number {
 	const slowStart = 20_000
 	const initial = 12.5e8
@@ -180,13 +196,21 @@ async function getBlockLight(height: number): Promise<Block> {
 		evictOldEntries()
 		return block
 	} catch {
-		return getBlockFull(height)
+		// Zebra has no getblockstats. Verbosity 2 walks every tx and stalls IBD.
+		const blockHash = await rpcClient.command<string>('getblockhash', height)
+		const raw = normalizeBlock(await rpcClient.command<Record<string, unknown>>('getblock', blockHash, 1))
+		const block = rawToBlock(raw)
+		blockCache.set(height, block)
+		evictOldEntries()
+		return block
 	}
 }
 
 export async function list(limit = 200): Promise<Block[]> {
-	const tipHeight = await rpcClient.command<number>('getblockcount')
-	const count = Math.min(limit, tipHeight + 1)
+	const info = await rpcClient.command<ChainTipInfo>('getblockchaininfo')
+	const tipHeight = info.blocks
+	const requested = isAtNetworkTip(info) ? limit : Math.min(limit, 5)
+	const count = Math.min(requested, tipHeight + 1)
 	const fetchFn = limit <= 5 ? getBlockFull : getBlockLight
 
 	const blocks = (await Promise.all(Array.from({length: count}, (_, i) => rpcQueue.add(() => fetchFn(tipHeight - i))))) as Block[]
@@ -203,13 +227,8 @@ blockStream.on('block', async (hash: string) => {
 	if (processing) return
 	processing = true
 	try {
-		const {blocks, headers, estimatedheight} = await rpcClient.command<{
-			blocks: number
-			headers: number
-			estimatedheight?: number
-		}>('getblockchaininfo')
-		const tip = headers || estimatedheight || blocks
-		if (blocks !== tip) return
+		const info = await rpcClient.command<ChainTipInfo>('getblockchaininfo')
+		if (!isAtNetworkTip(info)) return
 
 		const raw = normalizeBlock(await rpcClient.command<Record<string, unknown>>('getblock', hash, 1))
 		const block = rawToBlock(raw)
@@ -248,16 +267,15 @@ async function prime() {
 	priming = true
 	try {
 		await setTimeout(5000)
-		const {blocks, headers, estimatedheight} = await rpcClient.command<{
-			blocks: number
-			headers: number
-			estimatedheight?: number
-		}>('getblockchaininfo')
-		const tip = headers || estimatedheight || blocks
-		const atTip = blocks === tip && blocks > 0
-		if (atTip) fullPrimeComplete = true
-		console.log(`[blocks] prime: ${atTip ? CACHE_DEPTH : 5} blocks (${atTip ? 'synced' : 'not synced'})`)
-		await list(atTip ? CACHE_DEPTH : 5)
+		const info = await rpcClient.command<ChainTipInfo>('getblockchaininfo')
+		const atTip = isAtNetworkTip(info)
+		if (!atTip) {
+			console.log('[blocks] prime: skipped until Zebra reaches the estimated tip')
+			return
+		}
+		fullPrimeComplete = true
+		console.log(`[blocks] prime: ${CACHE_DEPTH} blocks (synced)`)
+		await list(CACHE_DEPTH)
 	} finally {
 		priming = false
 	}

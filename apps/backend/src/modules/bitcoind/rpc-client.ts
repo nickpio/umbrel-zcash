@@ -4,32 +4,56 @@ const url = `http://${host}:${port}/`
 
 let nextId = 0
 
+const CHAIN_INFO_TTL_MS = 1_000
+let chainInfoInflight: Promise<unknown> | null = null
+let chainInfoCached: {at: number; value: unknown} | null = null
+
+async function rpcFetch<T>(method: string, params: unknown[]): Promise<T> {
+	const res = await fetch(url, {
+		method: 'POST',
+		headers: {'Content-Type': 'application/json'},
+		body: JSON.stringify({jsonrpc: '1.0', method, params, id: nextId++}),
+		signal: AbortSignal.timeout(30_000),
+	})
+
+	if (!res.ok && !res.headers.get('content-type')?.includes('application/json')) {
+		const text = await res.text()
+		throw new Error(`RPC ${method}: HTTP ${res.status} ${text}`.trim())
+	}
+
+	let json: {result: T; error: {code: number; message: string} | null}
+	try {
+		json = await res.json()
+	} catch {
+		throw new Error(`RPC ${method}: invalid JSON response (HTTP ${res.status})`)
+	}
+
+	if (json.error) {
+		throw new Error(`RPC ${method}: ${json.error.message} (code ${json.error.code})`)
+	}
+
+	return json.result
+}
+
 export const rpcClient = {
 	async command<T = unknown>(method: string, ...params: unknown[]): Promise<T> {
-		const res = await fetch(url, {
-			method: 'POST',
-			headers: {'Content-Type': 'application/json'},
-			body: JSON.stringify({jsonrpc: '1.0', method, params, id: nextId++}),
-			signal: AbortSignal.timeout(30_000),
-		})
-
-		if (!res.ok && !res.headers.get('content-type')?.includes('application/json')) {
-			const text = await res.text()
-			throw new Error(`RPC ${method}: HTTP ${res.status} ${text}`.trim())
+		if (method === 'getblockchaininfo' && params.length === 0) {
+			if (chainInfoCached && Date.now() - chainInfoCached.at < CHAIN_INFO_TTL_MS) {
+				return chainInfoCached.value as T
+			}
+			if (chainInfoInflight) return chainInfoInflight as Promise<T>
+			chainInfoInflight = rpcFetch<T>(method, params)
+				.then((value) => {
+					chainInfoCached = {at: Date.now(), value}
+					return value
+				})
+				.finally(() => {
+					chainInfoInflight = null
+				})
+			return chainInfoInflight as Promise<T>
 		}
 
-		let json: {result: T; error: {code: number; message: string} | null}
-		try {
-			json = await res.json()
-		} catch {
-			throw new Error(`RPC ${method}: invalid JSON response (HTTP ${res.status})`)
-		}
-
-		if (json.error) {
-			throw new Error(`RPC ${method}: ${json.error.message} (code ${json.error.code})`)
-		}
-
-		return json.result
+		return rpcFetch<T>(method, params)
 	},
 }
 
