@@ -39,6 +39,9 @@ import SaveSettingsDialog from './SaveSettingsDialog'
 
 import {
 	DefaultValuesForVersion,
+	implementationForVersion,
+	implementationLabel,
+	LATEST,
 	settingsMetadataForVersion,
 	resolveVersion,
 	schemaForVersion,
@@ -422,7 +425,7 @@ export default function SettingsCard() {
 		resolver: versionedResolver as any,
 		mode: 'onChange',
 		reValidateMode: 'onChange',
-		defaultValues: DefaultValuesForVersion(resolveVersion('latest')) as any,
+		defaultValues: DefaultValuesForVersion(resolveVersion(LATEST)) as any,
 		shouldUnregister: false,
 	})
 
@@ -435,10 +438,9 @@ export default function SettingsCard() {
 	}, [initialSettings, form])
 
 	// Live UI: resolve settings metadata for the current selection
-	// 1) Subscribe to the form's version field (can be 'latest' or a specific version)
-	const selectedVersion = 'latest'
-	// 2) Map the selection to a specific Core version (e.g., 'latest' → 'v30.0')
-	const targetVersion = resolveVersion(selectedVersion as SelectedVersion)
+	const selectedVersion = (useWatch({control: form.control, name: 'version'}) as SelectedVersion | undefined) ?? LATEST
+	const targetVersion = resolveVersion(selectedVersion)
+	const nodeName = implementationLabel(targetVersion)
 	// 3) Materialize version-aware metadata used to render the fields and constraints
 	const settingsMetadata = useMemo(() => settingsMetadataForVersion(targetVersion), [targetVersion])
 
@@ -466,7 +468,7 @@ export default function SettingsCard() {
 	const onUpdateSettings = (data: SettingsSchema) => {
 		// If the mutation takes longer than 1 second, we show a loading toast
 		updateTimer.current = setTimeout(() => {
-			updateToastId.current = toast.loading('Hang tight, Zebra is restarting...', {duration: Infinity})
+			updateToastId.current = toast.loading(`Hang tight, ${nodeName} is restarting...`, {duration: Infinity})
 		}, 1000)
 
 		updateSettings.mutate(data, {
@@ -503,7 +505,7 @@ export default function SettingsCard() {
 	const onRestoreDefaults = () => {
 		// If the mutation takes longer than 1 second, we show a loading toast
 		restoreTimer.current = setTimeout(() => {
-			restoreToastId.current = toast.loading('Hang tight, Zebra is restarting...', {duration: Infinity})
+			restoreToastId.current = toast.loading('Hang tight, the node is restarting...', {duration: Infinity})
 		}, 1000)
 
 		restoreDefaults.mutate(undefined, {
@@ -646,8 +648,9 @@ export default function SettingsCard() {
 											{/* Render tab content dynamically from the tabs configuration */}
 											{tabs.map((tab) => (
 												<TabsContent key={tab.value} value={tab.value} className='space-y-6 pt-6'>
+													<SettingsTabContent tab={tab.value} form={form} settingsMetadata={settingsMetadata as any} />
+
 													{/* Special handling for advanced tab since it renders unique content (custom config editor etc.) */}
-													{/* Currently we don't have anything from settings.meta.ts that shows up in advanced. */}
 													{tab.value === 'advanced' && (
 														<>
 															{/* TODO: the error log feels a bit clunky being under "Advanced". */}
@@ -656,8 +659,6 @@ export default function SettingsCard() {
 															<BitcoindErrorLog settingsViewportRef={settingsViewportRef} />
 														</>
 													)}
-
-													<SettingsTabContent tab={tab.value} form={form} settingsMetadata={settingsMetadata as any} />
 												</TabsContent>
 											))}
 										</>
@@ -690,7 +691,11 @@ export default function SettingsCard() {
 												will not overwrite any custom overrides you've set under the "Advanced" tab on the Settings
 												page.
 											</p>
-											{null}
+											{implementationForVersion(targetVersion) === 'zakura' && (
+												<p>
+													Restoring defaults switches back to Zebra and deletes the Zakura chain to free disk space.
+												</p>
+											)}
 										</AlertDialogDescription>
 									</AlertDialogHeader>
 

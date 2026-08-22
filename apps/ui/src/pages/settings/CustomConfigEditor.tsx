@@ -23,9 +23,9 @@ export default function CustomConfigEditor() {
 
 	return (
 		<div className='border border-white/20 rounded-lg p-4 w-full'>
-			<label className='text-[14px] font-[400] text-white'>Custom zebrad.toml overrides</label>
+			<label className='text-[14px] font-[400] text-white'>Custom config overrides</label>
 			<p className='text-[13px] font-[400] text-white/60'>
-				Add extra TOML tables or keys here. Matching keys override the generated Zebra config from the other tabs.
+				Add extra TOML tables or keys here. Matching keys override the generated node config from the other tabs.
 			</p>
 
 			<Textarea
@@ -47,7 +47,7 @@ export default function CustomConfigEditor() {
 				disabled={!canSave}
 				onClick={() =>
 					save.mutate(text, {
-						onSuccess: () => toast.success('Overrides saved; restarting Zebra…'),
+						onSuccess: () => toast.success('Overrides saved; restarting the node…'),
 						onError: (e) => toast.error(e instanceof Error ? e.message : 'Failed to save overrides'),
 					})
 				}

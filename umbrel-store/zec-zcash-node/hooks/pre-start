@@ -3,5 +3,5 @@
 APP_DATA_DIR="$(readlink -f "$(dirname "${BASH_SOURCE[0]}")/../data")"
 DESIRED_OWNER="1000:1000"
 
-mkdir -p "${APP_DATA_DIR}/app" "${APP_DATA_DIR}/zebra" "${APP_DATA_DIR}/lightwalletd"
+mkdir -p "${APP_DATA_DIR}/app" "${APP_DATA_DIR}/zebra" "${APP_DATA_DIR}/zakura" "${APP_DATA_DIR}/lightwalletd"
 chown -R "${DESIRED_OWNER}" "${APP_DATA_DIR}"

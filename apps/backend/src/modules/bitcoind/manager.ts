@@ -2,8 +2,15 @@ import {spawn, ChildProcessWithoutNullStreams, execFileSync} from 'node:child_pr
 import {EventEmitter} from 'node:events'
 
 import type {ExitInfo} from '#types'
+import {
+	implementationForVersion,
+	implementationLabel,
+	normalizeSelectedVersion,
+	resolveVersion,
+	type SettingsSchema,
+} from '#settings'
 import {onLine} from '../../lib/on-line.js'
-import {ZEBRAD_BIN, ZEBRAD_TOML} from '../../lib/paths.js'
+import {ZEBRAD_BIN, ZAKURAD_BIN, ZEBRAD_TOML} from '../../lib/paths.js'
 
 type ZebradManagerOptions = {
 	binary?: string
@@ -11,11 +18,21 @@ type ZebradManagerOptions = {
 	extraArgs?: string[]
 }
 
+// zakurad/zebrad map PREFIX_field env vars onto config. Path vars used by this
+// process (`ZAKURA_DIR`, `ZEBRA_DIR`) would become unknown field `dir`.
+function envForNodeSpawn(): NodeJS.ProcessEnv {
+	const env = {...process.env}
+	delete env['ZAKURA_DIR']
+	delete env['ZEBRA_DIR']
+	return env
+}
+
 export class ZebradManager {
 	private child: ChildProcessWithoutNullStreams | null = null
-	private readonly bin: string
+	private bin: string
 	private readonly configPath: string
-	private readonly extraArgs: string[]
+	private extraArgs: string[]
+	private implLabel = 'Zebra'
 	public versionInfo: {implementation: string; version: string}
 	private startedAt: number | null = null
 	private lastError: Error | null = null
@@ -28,7 +45,7 @@ export class ZebradManager {
 	}
 
 	private handleLine(line: string, isStderr: boolean) {
-		const prefix = '[zebrad]'
+		const prefix = `[${this.implLabel.toLowerCase()}]`
 		void (isStderr ? console.error(prefix, line) : console.log(prefix, line))
 		this.recordLine(line)
 	}
@@ -39,14 +56,24 @@ export class ZebradManager {
 	constructor({binary = ZEBRAD_BIN, configPath = ZEBRAD_TOML, extraArgs = []}: ZebradManagerOptions = {}) {
 		this.bin = binary
 		this.configPath = configPath
+		this.extraArgs = extraArgs
+		this.versionInfo = this.getBinaryVersionInfo()
+	}
 
-		const envArgs = (process.env['ZEBRAD_EXTRA_ARGS'] ?? '')
+	configure(settings: SettingsSchema) {
+		const version = resolveVersion(normalizeSelectedVersion((settings as {version?: unknown}).version))
+		const impl = implementationForVersion(version)
+		this.implLabel = implementationLabel(version)
+		this.bin = impl === 'zakura' ? ZAKURAD_BIN : ZEBRAD_BIN
+
+		const envKey = impl === 'zakura' ? 'ZAKURAD_EXTRA_ARGS' : 'ZEBRAD_EXTRA_ARGS'
+		const envArgs = (process.env[envKey] ?? '')
 			.trim()
 			.split(',')
 			.map((arg) => arg.trim())
 			.filter(Boolean)
 
-		this.extraArgs = [...extraArgs, ...envArgs]
+		this.extraArgs = envArgs
 		this.versionInfo = this.getBinaryVersionInfo()
 	}
 
@@ -57,11 +84,10 @@ export class ZebradManager {
 	private getBinaryVersionInfo(binary = this.bin) {
 		try {
 			const firstLine = execFileSync(binary, ['--version']).toString().split('\n')[0]
-			const implementation = firstLine.replace(/\s*v?\d+\.\d+.*/i, '').trim() || 'Zebra'
 			const version = (firstLine.match(/v?\d+\.\d+\.\d+[\w.-]*/) ?? ['unknown'])[0]
-			return {implementation: implementation || 'Zebra', version: version.startsWith('v') ? version : `v${version}`}
+			return {implementation: this.implLabel, version: version.startsWith('v') ? version : `v${version}`}
 		} catch {
-			return {implementation: 'Zebra', version: 'unknown'}
+			return {implementation: this.implLabel, version: 'unknown'}
 		}
 	}
 
@@ -74,18 +100,19 @@ export class ZebradManager {
 
 		this.child = spawn(this.bin, ['--config', this.configPath, 'start', ...this.extraArgs], {
 			stdio: ['pipe', 'pipe', 'pipe'],
+			env: envForNodeSpawn(),
 		}) as ChildProcessWithoutNullStreams
 
 		this.lastError = null
-		console.log('[zebrad-manager] spawned PID', this.child.pid)
+		console.log(`[${this.implLabel.toLowerCase()}-manager] spawned PID`, this.child.pid)
 
 		this.events.emit('start')
 
-		onLine(this.child.stdout, (line) => this.handleLine(line, false), 'zebrad-manager')
-		onLine(this.child.stderr, (line) => this.handleLine(line, true), 'zebrad-manager')
+		onLine(this.child.stdout, (line) => this.handleLine(line, false), `${this.implLabel.toLowerCase()}-manager`)
+		onLine(this.child.stderr, (line) => this.handleLine(line, true), `${this.implLabel.toLowerCase()}-manager`)
 
 		this.child.on('exit', (code, sig) => {
-			console.error(`[zebrad] exited (code=${code}, sig=${sig})`)
+			console.error(`[${this.implLabel.toLowerCase()}] exited (code=${code}, sig=${sig})`)
 
 			if (this.expectingExit) {
 				this.child = null
@@ -96,7 +123,7 @@ export class ZebradManager {
 				code,
 				sig,
 				logTail: [...this.logRing],
-				message: `Zebra stopped (code ${code ?? 'null'})`,
+				message: `${this.implLabel} stopped (code ${code ?? 'null'})`,
 			}
 
 			this.events.emit('exit', this.exitInfo)
@@ -104,13 +131,13 @@ export class ZebradManager {
 		})
 
 		this.child.on('error', (err) => {
-			console.error('[zebrad-manager] failed to spawn:', err)
+			console.error(`[${this.implLabel.toLowerCase()}-manager] failed to spawn:`, err)
 			this.lastError = err
 			this.exitInfo = {
 				code: null,
 				sig: null,
 				logTail: [err.message],
-				message: `Failed to start Zebra: ${err.message}`,
+				message: `Failed to start ${this.implLabel}: ${err.message}`,
 			}
 			this.events.emit('exit', this.exitInfo)
 		})

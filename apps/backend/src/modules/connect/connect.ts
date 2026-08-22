@@ -19,12 +19,12 @@ export async function getConnectionDetails(): Promise<ConnectionDetails> {
 			tor: {
 				host: walletTorHost,
 				port: walletPort,
-				uri: `http://${walletTorHost}:${walletPort}`,
+				uri: `https://${walletTorHost}:${walletPort}`,
 			},
 			local: {
 				host: localHost,
 				port: walletPort,
-				uri: `http://${localHost}:${walletPort}`,
+				uri: `https://${localHost}:${walletPort}`,
 			},
 		},
 		p2p: {
