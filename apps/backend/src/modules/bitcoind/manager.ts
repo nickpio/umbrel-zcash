@@ -18,6 +18,15 @@ type ZebradManagerOptions = {
 	extraArgs?: string[]
 }
 
+// zakurad/zebrad map PREFIX_field env vars onto config. Path vars used by this
+// process (`ZAKURA_DIR`, `ZEBRA_DIR`) would become unknown field `dir`.
+function envForNodeSpawn(): NodeJS.ProcessEnv {
+	const env = {...process.env}
+	delete env['ZAKURA_DIR']
+	delete env['ZEBRA_DIR']
+	return env
+}
+
 export class ZebradManager {
 	private child: ChildProcessWithoutNullStreams | null = null
 	private bin: string
@@ -91,6 +100,7 @@ export class ZebradManager {
 
 		this.child = spawn(this.bin, ['--config', this.configPath, 'start', ...this.extraArgs], {
 			stdio: ['pipe', 'pipe', 'pipe'],
+			env: envForNodeSpawn(),
 		}) as ChildProcessWithoutNullStreams
 
 		this.lastError = null
