@@ -109,13 +109,17 @@ export default function ConnectionDetails() {
 									<Alert className='bg-[#EDCE0017] text-[#EDCE00] border-none'>
 										<TriangleAlert className='h-4 w-4' />
 										<AlertDescription className='text-[#EDCE00]'>
-											lightwalletd is served without TLS on your LAN and Tor hidden service. That is the usual setup for a
-											self-hosted node. Prefer the Tor address when you are off your home network.
+											lightwalletd is served over HTTPS on your LAN and Tor hidden service. Vizor needs the https:// URI.
+											Prefer the Tor address when you are off your home network.
 										</AlertDescription>
 									</Alert>
 									<div className='divide-y divide-white/6 overflow-hidden rounded-xl bg-white/6 px-4 py-4 space-y-3'>
 										<h5 className='text-white/80 text-[14px] font-[500]'>Wallet setup</h5>
 										<ol className='text-white/70 text-[13px] font-[400] space-y-2 list-decimal list-inside'>
+											<li>
+												<span className='text-white/90'>Vizor:</span> Settings → custom lightwalletd endpoint, then paste
+												the URI. Vizor only accepts https://.
+											</li>
 											<li>
 												<span className='text-white/90'>Zodl:</span> Settings → Connect to a server → custom, then enter
 												the host and port above.
@@ -126,7 +130,7 @@ export default function ConnectionDetails() {
 											</li>
 											<li>
 												<span className='text-white/90'>Zingo:</span>{' '}
-												<code className='text-white/80'>zingo-cli --server {conn.uri || 'http://host:9067'}</code>
+												<code className='text-white/80'>zingo-cli --server {conn.uri || 'https://host:9067'}</code>
 											</li>
 										</ol>
 										<p className='text-white/60 text-[13px]'>

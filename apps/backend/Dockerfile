@@ -14,6 +14,8 @@ FROM electriccoinco/lightwalletd:v0.4.17 AS lightwalletd
 # Dependencies layer
 ##########################################################
 FROM node:22-trixie-slim AS deps
+RUN apt-get update && apt-get install -y --no-install-recommends openssl \
+ && rm -rf /var/lib/apt/lists/*
 WORKDIR /repo
 
 COPY package*.json ./
@@ -57,6 +59,8 @@ RUN tsc -b libs/shared-types libs/settings apps/backend \
 # runtime stage
 ########################################
 FROM node:22-trixie-slim AS runtime
+RUN apt-get update && apt-get install -y --no-install-recommends openssl \
+ && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 COPY package*.json ./
