@@ -117,7 +117,7 @@ export default function ConnectionDetails() {
 										<h5 className='text-white/80 text-[14px] font-[500]'>Wallet setup</h5>
 										<ol className='text-white/70 text-[13px] font-[400] space-y-2 list-decimal list-inside'>
 											<li>
-												<span className='text-white/90'>Zashi:</span> Settings → Connect to a server → custom, then enter
+												<span className='text-white/90'>Zodl:</span> Settings → Connect to a server → custom, then enter
 												the host and port above.
 											</li>
 											<li>
