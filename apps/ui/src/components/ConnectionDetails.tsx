@@ -26,11 +26,14 @@ import FadeScrollArea from '@/components/shared/FadeScrollArea'
 
 import type {ConnectionDetails as ConnectionDetailsType} from '#types'
 import {useConnectionDetails} from '@/hooks/useConnectionDetails'
+import {useSettings} from '@/hooks/useSettings'
 
 type TabId = 'wallet' | 'rpc' | 'p2p'
 
 export default function ConnectionDetails() {
 	const {data} = useConnectionDetails()
+	const {data: settings} = useSettings()
+	const chainName = (settings as {chain?: string} | undefined)?.['chain'] === 'Testnet' ? 'testnet' : 'mainnet'
 
 	const [tab, setTab] = useState<TabId>('wallet')
 	const [net, setNet] = useState<'tor' | 'local'>('tor')
@@ -109,16 +112,21 @@ export default function ConnectionDetails() {
 									<Alert className='bg-[#EDCE0017] text-[#EDCE00] border-none'>
 										<TriangleAlert className='h-4 w-4' />
 										<AlertDescription className='text-[#EDCE00]'>
-											lightwalletd is served over HTTPS on your LAN and Tor hidden service. Vizor needs the https:// URI.
-											Prefer the Tor address when you are off your home network.
+											This node serves lightwalletd as plaintext gRPC on port 9067. Vizor and Zashi require a publicly
+											trusted HTTPS certificate (Mozilla webpki roots). A self-signed cert will not work. Put Tailscale
+											Serve or a Let’s Encrypt reverse proxy in front, then paste that hostname:port into Vizor.
 										</AlertDescription>
 									</Alert>
 									<div className='divide-y divide-white/6 overflow-hidden rounded-xl bg-white/6 px-4 py-4 space-y-3'>
 										<h5 className='text-white/80 text-[14px] font-[500]'>Wallet setup</h5>
 										<ol className='text-white/70 text-[13px] font-[400] space-y-2 list-decimal list-inside'>
 											<li>
-												<span className='text-white/90'>Vizor:</span> Settings → custom lightwalletd endpoint, then paste
-												the URI. Vizor only accepts https://.
+												<span className='text-white/90'>Vizor:</span> Install Tailscale on this Umbrel and on the Vizor
+												device. On the Umbrel host run{' '}
+												<code className='text-white/80'>sudo tailscale serve --bg --https=9067 localhost:9067</code>
+												, then in Vizor choose a custom lightwalletd endpoint and paste the hostname:port it prints
+												(for example <code className='text-white/80'>umbrel.tail-xxxx.ts.net:9067</code>). Set Vizor
+												to {chainName}.
 											</li>
 											<li>
 												<span className='text-white/90'>Zodl:</span> Settings → Connect to a server → custom, then enter
@@ -130,12 +138,12 @@ export default function ConnectionDetails() {
 											</li>
 											<li>
 												<span className='text-white/90'>Zingo:</span>{' '}
-												<code className='text-white/80'>zingo-cli --server {conn.uri || 'https://host:9067'}</code>
+												<code className='text-white/80'>zingo-cli --server {conn.uri || 'http://host:9067'}</code>
 											</li>
 										</ol>
 										<p className='text-white/60 text-[13px]'>
 											Wait until this node has finished syncing and lightwalletd has ingested the chain before connecting
-											a wallet.
+											a wallet. Vizor must be on the same network as this node ({chainName}).
 										</p>
 									</div>
 								</div>

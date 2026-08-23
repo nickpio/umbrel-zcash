@@ -7,7 +7,7 @@ This app is a fork of [umbrel-bitcoin](https://github.com/getumbrel/umbrel-bitco
 ## Architecture
 
 - **Zebra (`zebrad`) or Zakura (`zakurad`).** Consensus full node. JSON-RPC on port `8232`, P2P on `8233`. Pick one under Settings → Network. Default is Zebra 6.3.0. Zakura 1.2.0 is the other option.
-- **lightwalletd.** Compact-block gRPC server on port `9067` over TLS. This is the wallet connection surface (the Electrum equivalent).
+- **lightwalletd.** Compact-block gRPC server on port `9067`. This is the wallet connection surface (the Electrum equivalent). It listens in plaintext by default so a TLS terminator with a publicly trusted certificate can sit in front.
 - **App UI.** React dashboard served by a Fastify backend that manages the selected node and lightwalletd.
 
 Both binaries ship in the production image. Only one node runs at a time. Wallets keep talking to lightwalletd on `9067` either way.
@@ -28,11 +28,25 @@ docker compose up --build
 
 The UI is at `http://localhost:5173`. Dev defaults to **Testnet**.
 
-Connect a light wallet once the node has some blocks and lightwalletd is running:
+Connect a light wallet once the node has some blocks and lightwalletd is running.
+
+Zodl, Ywallet, and Zingo can use the plaintext URI:
 
 ```sh
-zingo-cli --server https://127.0.0.1:9067
+zingo-cli --server http://127.0.0.1:9067
 ```
+
+**Vizor** (and Zashi) will not connect to this URI. Release Vizor requires `https://` and verifies the certificate against Mozilla’s webpki roots, not the OS trust store. A self-signed cert, mkcert, or a CA you install on the machine all fail. HTTP is accepted only for `localhost` in Vizor debug builds.
+
+The usual way to serve a home node to Vizor is Tailscale Serve in front of plaintext lightwalletd ([str4d’s write-up](https://words.str4d.xyz/how-to-use-your-zcash-full-node-with-your-mobile-wallet-using-tailscale/)):
+
+```sh
+sudo tailscale serve --bg --https=9067 localhost:9067
+```
+
+Paste the hostname:port it prints (for example `umbrel.tail-xxxx.ts.net:9067`) into Vizor’s custom lightwalletd endpoint. Vizor’s network (mainnet vs testnet) must match this node.
+
+Alternatively, put Caddy, nginx, or certbot in front with a Let’s Encrypt certificate on a public hostname. To make lightwalletd itself speak TLS, set `LIGHTWALLETD_TLS_CERT` and `LIGHTWALLETD_TLS_KEY` to a publicly trusted PEM pair.
 
 ## Production image
 
@@ -46,4 +60,4 @@ docker compose -f docker-compose.prod.yml up
 - `zcashd` reached end of life in July 2026. This app does not ship it.
 - Zebra's official images are currently **amd64**. ARM devices may need a locally built `zebrad`.
 - Zakura 1.2.0 publishes amd64 and arm64 images. The app image still copies Zebra from an amd64-only tag, so a multi-arch build is not automatic.
-- lightwalletd is served over TLS on LAN and Tor. The app generates a certificate for the device hostname and hidden service. Vizor requires the `https://` URI. Prefer the Tor hidden service when you are away from home.
+- lightwalletd listens in plaintext on LAN and Tor by default. Vizor needs a publicly trusted HTTPS front (Tailscale Serve or Let’s Encrypt). Prefer the Tor hidden service only for wallets that accept `http://`.

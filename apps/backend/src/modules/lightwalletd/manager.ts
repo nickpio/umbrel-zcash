@@ -4,7 +4,7 @@ import {EventEmitter} from 'node:events'
 import type {ExitInfo} from '#types'
 import {onLine} from '../../lib/on-line.js'
 import {LIGHTWALLETD_BIN, LIGHTWALLETD_DIR, ZCASH_CONF} from '../../lib/paths.js'
-import {ensureLightwalletdTls} from './tls.js'
+import {lightwalletdTlsFiles} from './tls.js'
 
 type LightwalletdManagerOptions = {
 	binary?: string
@@ -51,25 +51,8 @@ export class LightwalletdManager {
 		const rpcPort = process.env['RPC_PORT'] || '8232'
 		this.logRing.length = 0
 
-		let tls: {certPath: string; keyPath: string}
-		try {
-			tls = ensureLightwalletdTls(this.dataDir, [
-				process.env['DEVICE_DOMAIN_NAME'],
-				process.env['WALLET_HIDDEN_SERVICE'],
-			])
-		} catch (error) {
-			const err = error instanceof Error ? error : new Error(String(error))
-			console.error('[lightwalletd-manager] TLS setup failed:', err)
-			this.lastError = err
-			this.exitInfo = {
-				code: null,
-				sig: null,
-				logTail: [err.message],
-				message: err.message,
-			}
-			this.events.emit('exit', this.exitInfo)
-			return
-		}
+		const tls = lightwalletdTlsFiles()
+		const tlsArgs = tls ? ['--tls-cert', tls.certPath, '--tls-key', tls.keyPath] : ['--no-tls-very-insecure']
 
 		this.startedAt = Date.now()
 		this.child = spawn(
@@ -77,10 +60,7 @@ export class LightwalletdManager {
 			[
 				'--grpc-bind-addr',
 				`0.0.0.0:${grpcPort}`,
-				'--tls-cert',
-				tls.certPath,
-				'--tls-key',
-				tls.keyPath,
+				...tlsArgs,
 				'--grpc-logging-insecure',
 				'--zcash-conf-path',
 				this.zcashConf,

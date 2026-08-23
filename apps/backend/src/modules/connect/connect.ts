@@ -1,7 +1,9 @@
 import type {ConnectionDetails} from '#types'
+import {walletUriScheme} from '../lightwalletd/tls.js'
 
 export async function getConnectionDetails(): Promise<ConnectionDetails> {
 	const localHost = process.env['DEVICE_DOMAIN_NAME'] ?? '127.0.0.1'
+	const walletScheme = walletUriScheme()
 
 	const p2pPort = process.env['P2P_PORT'] ?? '8233'
 	const p2pTorHost = process.env['P2P_HIDDEN_SERVICE'] ?? 'somehiddenservice.onion'
@@ -19,12 +21,12 @@ export async function getConnectionDetails(): Promise<ConnectionDetails> {
 			tor: {
 				host: walletTorHost,
 				port: walletPort,
-				uri: `https://${walletTorHost}:${walletPort}`,
+				uri: `${walletScheme}://${walletTorHost}:${walletPort}`,
 			},
 			local: {
 				host: localHost,
 				port: walletPort,
-				uri: `https://${localHost}:${walletPort}`,
+				uri: `${walletScheme}://${localHost}:${walletPort}`,
 			},
 		},
 		p2p: {
