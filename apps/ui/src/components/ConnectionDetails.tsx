@@ -117,7 +117,7 @@ export default function ConnectionDetails() {
 											Serve or a Let’s Encrypt reverse proxy in front, then paste that hostname:port into Vizor.
 										</AlertDescription>
 									</Alert>
-									<div className='divide-y divide-white/6 overflow-hidden rounded-xl bg-white/6 px-4 py-4 space-y-3'>
+									<div className='rounded-xl bg-white/6 px-4 py-4 space-y-3'>
 										<h5 className='text-white/80 text-[14px] font-[500]'>Wallet setup</h5>
 										<ol className='text-white/70 text-[13px] font-[400] space-y-2 list-decimal list-inside'>
 											<li>
