@@ -253,6 +253,7 @@ export class VizorHttpsManager {
 
 	private hostname(): string {
 		const raw = process.env['VIZOR_TAILSCALE_HOSTNAME'] || process.env['DEVICE_DOMAIN_NAME'] || 'zcash-node'
+		if (/^\d{1,3}(\.\d{1,3}){3}$/.test(raw)) return 'zcash-node'
 		return raw.replace(/[^a-zA-Z0-9-]/g, '-').replace(/^-+|-+$/g, '').slice(0, 63) || 'zcash-node'
 	}
 
