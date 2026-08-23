@@ -9,8 +9,9 @@ description: >-
   lightwalletd wallet server so Vizor, Zodl, Ywallet, and Zingo can connect
   to your own node.
 releaseNotes: >-
-  Add a Zebra or Zakura node selector, serve lightwalletd over TLS for
-  Vizor, and rename Zashi wallet references to Zodl.
+  Serve lightwalletd in plaintext so Vizor can sit behind Tailscale Serve or
+  another publicly trusted HTTPS proxy. A device-generated certificate cannot
+  satisfy Vizor.
 developer: Zcash Node
 website: https://zebra.zfnd.org
 dependencies: []
