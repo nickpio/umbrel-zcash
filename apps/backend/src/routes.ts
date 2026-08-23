@@ -48,6 +48,10 @@ export default fp(async (app: FastifyInstance) => {
 	// connect routes
 	const connectBase = `${BASE}/connect`
 	app.get(`${connectBase}/details`, connect.getConnectionDetails)
+	app.post(`${connectBase}/vizor-https`, async (req) => {
+		const {enabled} = (req.body ?? {}) as {enabled?: boolean}
+		return connect.setVizorHttpsEnabled(Boolean(enabled))
+	})
 
 	// config routes
 	const configBase = `${BASE}/config`

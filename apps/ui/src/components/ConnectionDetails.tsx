@@ -23,6 +23,7 @@ import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover'
 import WalletIcon from '@/assets/wallet.svg?react'
 import {GradientBorderFromTop} from '@/components/shared/GradientBorders'
 import FadeScrollArea from '@/components/shared/FadeScrollArea'
+import {VizorHttpsCard} from '@/components/VizorHttpsCard'
 
 import type {ConnectionDetails as ConnectionDetailsType} from '#types'
 import {useConnectionDetails} from '@/hooks/useConnectionDetails'
@@ -100,33 +101,22 @@ export default function ConnectionDetails() {
 					<FadeScrollArea className='h-[min(480px,calc(90vh-200px))]'>
 						<div className='space-y-4 mt-4 flex'>
 							<TabsContent value='wallet' className='mt-0 min-h-[360px]'>
-								<div className='flex flex-col sm:flex-row gap-4'>
-									<ConnectionTypeAndQrCard net={net} setNet={setNet} conn={conn} />
-									<div className='divide-y divide-white/6 overflow-hidden rounded-xl w-full h-fit bg-gradient-to-b from-[#1C1C1C] to-[#0D0D0D]'>
-										<Field label='Host' value={conn.host} />
-										<Field label='Port' value={conn.port?.toString()} />
-										<Field label='URI' value={conn.uri} />
+								<div className='space-y-4'>
+									<VizorHttpsCard status={data?.vizorHttps} chainName={chainName} />
+									<div className='flex flex-col sm:flex-row gap-4'>
+										<ConnectionTypeAndQrCard net={net} setNet={setNet} conn={conn} />
+										<div className='divide-y divide-white/6 overflow-hidden rounded-xl w-full h-fit bg-gradient-to-b from-[#1C1C1C] to-[#0D0D0D]'>
+											<Field label='Host' value={conn.host} />
+											<Field label='Port' value={conn.port?.toString()} />
+											<Field label='URI' value={conn.uri} />
+										</div>
 									</div>
-								</div>
-								<div className='mt-4 space-y-3'>
-									<Alert className='bg-[#EDCE0017] text-[#EDCE00] border-none'>
-										<TriangleAlert className='h-4 w-4' />
-										<AlertDescription className='text-[#EDCE00]'>
-											This node serves lightwalletd as plaintext gRPC on port 9067. Vizor and Zashi require a publicly
-											trusted HTTPS certificate (Mozilla webpki roots). A self-signed cert will not work. Put Tailscale
-											Serve or a Let’s Encrypt reverse proxy in front, then paste that hostname:port into Vizor.
-										</AlertDescription>
-									</Alert>
 									<div className='rounded-xl bg-white/6 px-4 py-4 space-y-3'>
-										<h5 className='text-white/80 text-[14px] font-[500]'>Wallet setup</h5>
+										<h5 className='text-white/80 text-[14px] font-[500]'>Other wallets</h5>
 										<ol className='text-white/70 text-[13px] font-[400] space-y-2 list-decimal list-inside'>
 											<li>
-												<span className='text-white/90'>Vizor:</span> Install Tailscale on this Umbrel and on the Vizor
-												device. On the Umbrel host run{' '}
-												<code className='text-white/80'>sudo tailscale serve --bg --https=9067 localhost:9067</code>
-												, then in Vizor choose a custom lightwalletd endpoint and paste the hostname:port it prints
-												(for example <code className='text-white/80'>umbrel.tail-xxxx.ts.net:9067</code>). Set Vizor
-												to {chainName}.
+												<span className='text-white/90'>Vizor:</span> Use the HTTPS card above. Release Vizor will not
+												accept the plaintext URI. Set Vizor to {chainName}.
 											</li>
 											<li>
 												<span className='text-white/90'>Zodl:</span> Settings → Connect to a server → custom, then enter

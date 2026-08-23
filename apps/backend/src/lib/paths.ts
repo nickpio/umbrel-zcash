@@ -12,6 +12,7 @@ export const ZEBRA_DIR = process.env['CHAIN_STATE_DIR'] || process.env['ZEBRA_DI
 export const ZAKURA_DIR = process.env['ZAKURA_DIR'] || path.join(REPO_ROOT, 'data', 'zakura')
 export const APP_STATE_DIR = process.env['APP_STATE_DIR'] || path.join(REPO_ROOT, 'data', 'app')
 export const LIGHTWALLETD_DIR = process.env['LIGHTWALLETD_DIR'] || path.join(REPO_ROOT, 'data', 'lightwalletd')
+export const VIZOR_HTTPS_DIR = path.join(APP_STATE_DIR, 'vizor-https')
 
 export const SETTINGS_JSON = path.join(APP_STATE_DIR, 'settings.json')
 export const ZEBRAD_TOML = path.join(APP_STATE_DIR, 'zebrad.toml')
@@ -19,5 +20,5 @@ export const CUSTOM_TOML = path.join(APP_STATE_DIR, 'custom.toml')
 export const ZCASH_CONF = path.join(APP_STATE_DIR, 'zcash.conf')
 
 export async function ensureDirs() {
-	await Promise.all([fse.ensureDir(APP_STATE_DIR), fse.ensureDir(LIGHTWALLETD_DIR)])
+	await Promise.all([fse.ensureDir(APP_STATE_DIR), fse.ensureDir(LIGHTWALLETD_DIR), fse.ensureDir(VIZOR_HTTPS_DIR)])
 }

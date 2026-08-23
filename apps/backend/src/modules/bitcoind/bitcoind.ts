@@ -2,6 +2,7 @@ import {ZebradManager} from './manager.js'
 import {LightwalletdManager} from '../lightwalletd/manager.js'
 import {waitForRpc} from './rpc-client.js'
 import {ensureConfig, getSettings} from '../config/config.js'
+import {vizorHttps} from '../vizor-https/manager.js'
 
 import type {BitcoindVersion, BitcoindStatus, BitcoindLifecycleResponse, ExitInfo} from '#types'
 import type WebSocket from 'ws'
@@ -23,6 +24,7 @@ export async function bootBitcoind(): Promise<void> {
 	bitcoind.configure(settings)
 	bitcoind.start()
 	void startLightwalletdWhenReady()
+	void vizorHttps.restore()
 }
 
 export const version = (): BitcoindVersion => bitcoind.versionInfo
@@ -37,11 +39,13 @@ export const start = async (): Promise<BitcoindLifecycleResponse> => {
 	bitcoind.configure(await getSettings())
 	bitcoind.start()
 	void startLightwalletdWhenReady()
+	void vizorHttps.restore()
 	return {...status(), result: 'started'}
 }
 
 export const stop = async (): Promise<BitcoindLifecycleResponse> => {
 	if (!status().running && !lightwalletd.status().running) return {...status(), result: 'no_op'}
+	await vizorHttps.stop()
 	await lightwalletd.stop()
 	await bitcoind.stop()
 	return {...status(), result: 'stopped'}
