@@ -135,7 +135,13 @@ export type ConnectionDetails = {
 	wallet: {
 		tor: EndpointDetails
 		local: EndpointDetails
+		/** Present when Umbrel Tailscale MagicDNS hostname is known and cert is active. */
+		tailscale?: EndpointDetails
 	}
+	/** True when lightwalletd is presenting a Tailscale Let's Encrypt cert. */
+	tailscaleTls: boolean
+	/** Whole days until the Tailscale cert expires; null if unused/unknown. */
+	tailscaleCertDaysRemaining: number | null
 	p2p: {
 		tor: EndpointDetails
 		local: EndpointDetails

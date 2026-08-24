@@ -8,7 +8,7 @@
 ###########################################
 FROM zfnd/zebra:6.3.0 AS zebra
 FROM zakuracore/zakura:1.2.0 AS zakura
-FROM electriccoinco/lightwalletd:v0.4.17 AS lightwalletd
+FROM electriccoinco/lightwalletd:v0.5.0 AS lightwalletd
 
 ##########################################################
 # Dependencies layer
@@ -59,7 +59,7 @@ RUN tsc -b libs/shared-types libs/settings apps/backend \
 # runtime stage
 ########################################
 FROM node:22-trixie-slim AS runtime
-RUN apt-get update && apt-get install -y --no-install-recommends openssl \
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
