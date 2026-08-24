@@ -10,6 +10,14 @@ import {NEAR_TIP_BLOCKS} from '../sync/sync.js'
 import {blockStream} from './zmq-subscriber.js'
 
 import type {Block, RawBlock, RawTransaction} from '#types'
+import {
+	blockFeesZat,
+	chainFromRpc,
+	computeBlockSubsidy,
+	percentiles,
+	txFeeSamplesZat,
+	type ZcashChain,
+} from './zcash-economics.js'
 
 const rpcQueue = new PQueue({concurrency: 10})
 
@@ -17,6 +25,7 @@ type ChainTipInfo = {
 	blocks: number
 	headers?: number
 	estimatedheight?: number
+	chain?: string
 }
 
 // Zebra reports blocks == headers during checkpoint sync. The real tip is estimatedheight.
@@ -29,28 +38,6 @@ function isAtNetworkTip(info: ChainTipInfo): boolean {
 	return info.blocks > 0 && tip > 0 && tip - info.blocks <= NEAR_TIP_BLOCKS
 }
 
-function computeSubsidy(height: number): number {
-	const slowStart = 20_000
-	const initial = 12.5e8
-	const halvingInterval = 840_000
-	if (height < slowStart) return Math.floor((initial * height) / slowStart)
-	const halvings = Math.floor(height / halvingInterval)
-	if (halvings >= 64) return 0
-	return Math.floor(initial / 2 ** halvings)
-}
-
-function computeFeeRatePercentiles(txs: RawTransaction[]): {p10: number; p50: number; p90: number} {
-	const feeRates = txs
-		.filter((tx) => tx.fee != null && tx.vsize > 0)
-		.map((tx) => Math.round((tx.fee! * 1e8) / tx.vsize))
-		.sort((a, b) => a - b)
-
-	if (feeRates.length === 0) return {p10: 0, p50: 0, p90: 0}
-
-	const pick = (p: number) => feeRates[Math.min(Math.floor((p / 100) * feeRates.length), feeRates.length - 1)]
-	return {p10: pick(10), p50: pick(50), p90: pick(90)}
-}
-
 function transactionGrid(transactions: RawTransaction[], gridSize: number) {
 	const TOTAL_BLOCK_SIZE = 2_000_000
 
@@ -61,7 +48,7 @@ function transactionGrid(transactions: RawTransaction[], gridSize: number) {
 	}))
 
 	for (const transaction of transactions) {
-		const weight = transaction.weight || transaction.vsize || 0
+		const weight = transaction.size || transaction.weight || transaction.vsize || 0
 		const txPercentageOfBlock = weight / TOTAL_BLOCK_SIZE
 		for (const chunk of squareSizes) {
 			const chunkPercentageOfGrid = Math.pow(chunk.size / gridSize, 2)
@@ -83,48 +70,66 @@ function transactionGrid(transactions: RawTransaction[], gridSize: number) {
 		.map(({size, numberOfBlocks}) => ({size, numberOfBlocks}))
 }
 
-type BlockStats = {
-	height: number
-	time: number
-	blockhash: string
-	total_size: number
-	total_weight: number
-	txs: number
-	subsidy: number
-	totalfee: number
-	feerate_percentiles: [number, number, number, number, number]
-}
-
-function statsToBlock(stats: BlockStats): Block {
-	const [p10, , p50, , p90] = stats.feerate_percentiles ?? [0, 0, 0, 0, 0]
-	return {
-		hash: stats.blockhash,
-		height: stats.height,
-		time: stats.time,
-		size: stats.total_size,
-		weight: stats.total_weight,
-		txCount: stats.txs,
-		subsidySat: stats.subsidy,
-		feesSat: stats.totalfee,
-		feeRates: {p10, p50, p90},
-		transactionGrid: [],
-	}
-}
-
-function rawToBlock(raw: RawBlock): Block {
-	const feesSat = Math.round(raw.tx.reduce((sum: number, tx) => sum + (tx.fee ?? 0), 0) * 1e8)
+function rawToBlock(raw: RawBlock, chain: ZcashChain): Block {
+	const subsidySat = computeBlockSubsidy(raw.height, chain)
+	const size = raw.size || raw.tx.reduce((sum, tx) => sum + (tx.size || tx.vsize || 0), 0)
 
 	return {
 		hash: raw.hash,
 		height: raw.height,
 		time: raw.time,
-		size: raw.size,
-		weight: raw.weight || raw.size,
-		txCount: raw.nTx,
-		subsidySat: computeSubsidy(raw.height),
-		feesSat,
-		feeRates: computeFeeRatePercentiles(raw.tx),
+		size,
+		weight: raw.weight || size,
+		txCount: raw.nTx || raw.tx.length,
+		subsidySat,
+		feesSat: blockFeesZat(raw.tx[0], subsidySat),
+		feeRates: percentiles(txFeeSamplesZat(raw.tx)),
 		transactionGrid: transactionGrid(raw.tx, 20),
+	}
+}
+
+function asObjectArray(value: unknown): Array<Record<string, unknown>> | undefined {
+	if (!Array.isArray(value)) return undefined
+	return value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
+}
+
+function asPool(value: unknown): RawTransaction['orchard'] {
+	if (!value || typeof value !== 'object') return undefined
+	const pool = value as Record<string, unknown>
+	return {
+		valueBalance: typeof pool['valueBalance'] === 'number' ? pool['valueBalance'] : undefined,
+		valueBalanceZat: typeof pool['valueBalanceZat'] === 'number' ? pool['valueBalanceZat'] : undefined,
+		actions: Array.isArray(pool['actions']) ? pool['actions'] : undefined,
+	}
+}
+
+function normalizeTx(tx: Record<string, unknown>): RawTransaction {
+	const size = Number(tx['size'] ?? tx['vsize'] ?? 0)
+	const vout = asObjectArray(tx['vout'])?.map((out) => ({
+		value: typeof out['value'] === 'number' ? out['value'] : undefined,
+		valueZat: typeof out['valueZat'] === 'number' ? out['valueZat'] : undefined,
+	}))
+	const vjoinsplit = asObjectArray(tx['vjoinsplit'])?.map((js) => ({
+		vpub_old: typeof js['vpub_old'] === 'number' ? js['vpub_old'] : undefined,
+		vpub_oldZat: typeof js['vpub_oldZat'] === 'number' ? js['vpub_oldZat'] : undefined,
+		vpub_new: typeof js['vpub_new'] === 'number' ? js['vpub_new'] : undefined,
+		vpub_newZat: typeof js['vpub_newZat'] === 'number' ? js['vpub_newZat'] : undefined,
+	}))
+
+	return {
+		txid: String(tx['txid'] ?? ''),
+		vsize: size,
+		weight: Number(tx['weight'] ?? size),
+		size,
+		vin: asObjectArray(tx['vin']),
+		vout,
+		valueBalance: typeof tx['valueBalance'] === 'number' ? tx['valueBalance'] : undefined,
+		valueBalanceZat: typeof tx['valueBalanceZat'] === 'number' ? tx['valueBalanceZat'] : undefined,
+		vShieldedSpend: Array.isArray(tx['vShieldedSpend']) ? tx['vShieldedSpend'] : undefined,
+		vShieldedOutput: Array.isArray(tx['vShieldedOutput']) ? tx['vShieldedOutput'] : undefined,
+		vjoinsplit,
+		orchard: asPool(tx['orchard']),
+		ironwood: asPool(tx['ironwood']),
 	}
 }
 
@@ -137,13 +142,7 @@ function normalizeBlock(raw: Record<string, unknown>): RawBlock {
 			if (typeof item === 'string') {
 				txs.push({txid: item, vsize: 0, weight: 0})
 			} else if (item && typeof item === 'object') {
-				const tx = item as Record<string, unknown>
-				txs.push({
-					txid: String(tx['txid'] ?? ''),
-					fee: typeof tx['fee'] === 'number' ? tx['fee'] : undefined,
-					vsize: Number(tx['vsize'] ?? tx['size'] ?? 0),
-					weight: Number(tx['weight'] ?? tx['size'] ?? 0),
-				})
+				txs.push(normalizeTx(item as Record<string, unknown>))
 			}
 		}
 	}
@@ -161,60 +160,55 @@ function normalizeBlock(raw: Record<string, unknown>): RawBlock {
 
 const CACHE_DEPTH = 200
 const blockCache = new Map<number, Block>()
+const fullHeights = new Set<number>()
 
 function evictOldEntries() {
 	if (blockCache.size <= CACHE_DEPTH) return
 	const sortedKeys = Array.from(blockCache.keys()).sort((a, b) => a - b)
 	const keysToDelete = sortedKeys.slice(0, blockCache.size - CACHE_DEPTH)
-	keysToDelete.forEach((key) => blockCache.delete(key))
+	for (const key of keysToDelete) {
+		blockCache.delete(key)
+		fullHeights.delete(key)
+	}
 }
 
-async function getBlockFull(height: number): Promise<Block> {
-	const cached = blockCache.get(height)
-	if (cached && cached.transactionGrid.length > 0) return cached
+async function getBlockByRef(ref: string | number, verbosity: 1 | 2): Promise<RawBlock> {
+	return normalizeBlock(await rpcClient.command<Record<string, unknown>>('getblock', String(ref), verbosity))
+}
 
-	const blockHash = await rpcClient.command<string>('getblockhash', height)
-	let raw: RawBlock
+async function getBlockPreferVerbose(ref: string | number): Promise<{raw: RawBlock; full: boolean}> {
 	try {
-		raw = normalizeBlock(await rpcClient.command<Record<string, unknown>>('getblock', blockHash, 2))
+		return {raw: await getBlockByRef(ref, 2), full: true}
 	} catch {
-		raw = normalizeBlock(await rpcClient.command<Record<string, unknown>>('getblock', blockHash, 1))
+		// Verbosity 2 is heavier; fall back if the node rejects it or times out.
+		return {raw: await getBlockByRef(ref, 1), full: false}
 	}
-	const block = rawToBlock(raw)
+}
+
+async function fetchBlock(height: number, chain: ZcashChain, wantFull: boolean): Promise<Block> {
+	const cached = blockCache.get(height)
+	if (cached && (!wantFull || fullHeights.has(height))) return cached
+
+	const {raw, full} = wantFull ? await getBlockPreferVerbose(height) : {raw: await getBlockByRef(height, 1), full: false}
+	const block = rawToBlock(raw, chain)
 	blockCache.set(height, block)
+	if (full) fullHeights.add(height)
 	evictOldEntries()
 	return block
 }
 
-async function getBlockLight(height: number): Promise<Block> {
-	const cached = blockCache.get(height)
-	if (cached) return cached
-
-	try {
-		const stats = await rpcClient.command<BlockStats>('getblockstats', height)
-		const block = statsToBlock(stats)
-		blockCache.set(height, block)
-		evictOldEntries()
-		return block
-	} catch {
-		// Zebra has no getblockstats. Verbosity 2 walks every tx and stalls IBD.
-		const blockHash = await rpcClient.command<string>('getblockhash', height)
-		const raw = normalizeBlock(await rpcClient.command<Record<string, unknown>>('getblock', blockHash, 1))
-		const block = rawToBlock(raw)
-		blockCache.set(height, block)
-		evictOldEntries()
-		return block
-	}
-}
-
 export async function list(limit = 200): Promise<Block[]> {
 	const info = await rpcClient.command<ChainTipInfo>('getblockchaininfo')
+	const chain = chainFromRpc(info.chain)
 	const tipHeight = info.blocks
-	const requested = isAtNetworkTip(info) ? limit : Math.min(limit, 5)
+	const atTip = isAtNetworkTip(info)
+	const requested = atTip ? limit : Math.min(limit, 5)
 	const count = Math.min(requested, tipHeight + 1)
-	const fetchFn = limit <= 5 ? getBlockFull : getBlockLight
+	const wantFull = atTip || limit <= 5
 
-	const blocks = (await Promise.all(Array.from({length: count}, (_, i) => rpcQueue.add(() => fetchFn(tipHeight - i))))) as Block[]
+	const blocks = (await Promise.all(
+		Array.from({length: count}, (_, i) => rpcQueue.add(() => fetchBlock(tipHeight - i, chain, wantFull))),
+	)) as Block[]
 
 	return blocks.reverse()
 }
@@ -231,9 +225,10 @@ blockStream.on('block', async (hash: string) => {
 		const info = await rpcClient.command<ChainTipInfo>('getblockchaininfo')
 		if (!isAtNetworkTip(info)) return
 
-		const raw = normalizeBlock(await rpcClient.command<Record<string, unknown>>('getblock', hash, 1))
-		const block = rawToBlock(raw)
+		const {raw, full} = await getBlockPreferVerbose(hash)
+		const block = rawToBlock(raw, chainFromRpc(info.chain))
 		blockCache.set(block.height, block)
+		if (full) fullHeights.add(block.height)
 		evictOldEntries()
 		newBlockEmitter.emit('block', block)
 
@@ -284,6 +279,7 @@ async function prime() {
 
 function reset() {
 	blockCache.clear()
+	fullHeights.clear()
 	fullPrimeComplete = false
 	processing = false
 	priming = false

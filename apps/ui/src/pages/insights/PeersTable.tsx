@@ -37,7 +37,7 @@ type PeerRow = {
 		category: string // 'Clearnet' | 'Tor' | 'I2P'
 		subcategory: string // the actual network name returned by the RPC
 	}
-	relayTxns: boolean
+	relayTxns: boolean | null
 	inbound: boolean
 	connectionTime: number
 }
@@ -83,14 +83,11 @@ export const columns: ColumnDef<PeerRow>[] = [
 		accessorKey: 'relayTxns',
 		header: ({header}) => <SortableHeader header={header}>Relay TXNs</SortableHeader>,
 		cell: ({row}) => {
-			// checkmark filled if true, otherwise checkmark with opacity 0.5
+			const relay = row.original.relayTxns
+			if (relay == null) return <div className='text-white/30'>—</div>
 			return (
 				<div>
-					{row.getValue('relayTxns') ? (
-						<CheckmarkIcon className='h-4 w-4' />
-					) : (
-						<CheckmarkIcon className='h-4 w-4 opacity-20' />
-					)}
+					<CheckmarkIcon className={`h-4 w-4 ${relay ? '' : 'opacity-20'}`} />
 				</div>
 			)
 		},
@@ -107,8 +104,8 @@ export const columns: ColumnDef<PeerRow>[] = [
 		header: ({header}) => <SortableHeader header={header}>Connected</SortableHeader>,
 		// format as a time since connected from UNIX time
 		cell: ({row}) => {
-			const unix = row.getValue<number>('connectionTime') // seconds since epoch
-			return <div>{timeAgoShort(unix)}</div>
+			const unix = row.getValue<number>('connectionTime')
+			return <div>{unix > 0 ? timeAgoShort(unix) : '—'}</div>
 		},
 	},
 
@@ -191,9 +188,9 @@ export default function PeersTable() {
 								: 'clearnet',
 				subcategory: p.network,
 			},
-			relayTxns: p.relaytxes ?? true,
+			relayTxns: p.relaytxes ?? null,
 			inbound: p.inbound,
-			connectionTime: p.conntime,
+			connectionTime: p.conntime > 0 ? p.conntime : p.lastrecv,
 		}))
 	}, [peers])
 

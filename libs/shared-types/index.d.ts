@@ -38,7 +38,7 @@ export type PeerInfo = {
 	addr: string
 	addrlocal?: string
 	network: string
-	relaytxes: boolean
+	relaytxes?: boolean
 	lastsend: number
 	lastrecv: number
 	bytessent: number
@@ -62,11 +62,32 @@ export type PeerLocationsResponse = {
 	peers: PeerLocation[]
 }
 
+export type ShieldedPool = {
+	valueBalance?: number
+	valueBalanceZat?: number
+	actions?: unknown[]
+}
+
 export type RawTransaction = {
 	txid: string
 	fee?: number
 	vsize: number
 	weight: number
+	size?: number
+	vin?: Array<Record<string, unknown>>
+	vout?: Array<{value?: number; valueZat?: number}>
+	valueBalance?: number
+	valueBalanceZat?: number
+	vShieldedSpend?: unknown[]
+	vShieldedOutput?: unknown[]
+	vjoinsplit?: Array<{
+		vpub_old?: number
+		vpub_oldZat?: number
+		vpub_new?: number
+		vpub_newZat?: number
+	}>
+	orchard?: ShieldedPool
+	ironwood?: ShieldedPool
 }
 
 export type RawBlock = {

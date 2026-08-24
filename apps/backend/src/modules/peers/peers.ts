@@ -19,7 +19,7 @@ function normalizePeer(p: Record<string, unknown>, index: number): PeerInfo {
 		addr,
 		addrlocal: typeof p['addrlocal'] === 'string' ? p['addrlocal'] : undefined,
 		network: inferNetwork({network: typeof p['network'] === 'string' ? p['network'] : undefined, addr}),
-		relaytxes: typeof p['relaytxes'] === 'boolean' ? p['relaytxes'] : true,
+		relaytxes: typeof p['relaytxes'] === 'boolean' ? p['relaytxes'] : undefined,
 		lastsend: Number(p['lastsend'] ?? 0),
 		lastrecv: Number(p['lastrecv'] ?? 0),
 		bytessent: Number(p['bytessent'] ?? 0),

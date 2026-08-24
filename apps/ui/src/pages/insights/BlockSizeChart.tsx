@@ -10,9 +10,8 @@ import {
 	sliceLast24h,
 	findClosestDataPoint,
 	calculateHoursAgo,
-	bytesToMB,
+	bytesToKB,
 	hoursToMs,
-	mbToBytes,
 } from '@/lib/chartHelpers'
 
 import {useBlocks} from '@/hooks/useBlocks'
@@ -20,7 +19,7 @@ import {syncStage} from '@/lib/sync-progress'
 import {useSyncStatus} from '@/hooks/useSyncStatus'
 
 const SERIES = {
-	sizeMB: {label: 'Size (MB)', color: '#F4B728'},
+	sizeKB: {label: 'Size (KB)', color: '#F4B728'},
 } as const
 
 export default function BlockSizeChart() {
@@ -43,7 +42,8 @@ export default function BlockSizeChart() {
 	const chartData = slice.map((p) => ({
 		block: p.height,
 		hoursAgo: calculateHoursAgo(p.time),
-		sizeMB: bytesToMB(p.size),
+		size: p.size,
+		sizeKB: bytesToKB(p.size),
 	}))
 
 	// Defer the data to avoid blocking the main thread and allow the chart to render immediately and the dock tab to animate smoothly
@@ -99,7 +99,7 @@ export default function BlockSizeChart() {
 									<div className='flex items-center gap-2'>
 										<span className='text-white/60'>Size</span>
 										<span className='ml-auto font-mono tabular-nums text-[#F4B728]'>
-											{prettyBytes(mbToBytes(d.sizeMB), {maximumFractionDigits: 2})}
+											{prettyBytes(d.size, {maximumFractionDigits: 2})}
 										</span>
 									</div>
 								</div>
@@ -110,7 +110,7 @@ export default function BlockSizeChart() {
 					{/* axes / grid / data */}
 					<CartesianGrid {...DEFAULT_GRID_PROPS} />
 
-					<YAxis {...makeYAxis('MB')} domain={[0, (dataMax: number) => Math.ceil(dataMax)]} />
+					<YAxis {...makeYAxis('KB')} domain={[0, (dataMax: number) => Math.ceil(dataMax)]} />
 
 					{/* Main x-axis that we plot against (hours-ago) */}
 					<XAxis
@@ -144,7 +144,7 @@ export default function BlockSizeChart() {
 					/>
 
 					<Area
-						dataKey='sizeMB'
+						dataKey='sizeKB'
 						type='monotone'
 						/* gradient under the curve */
 						fill={`url(#${fillId})`}

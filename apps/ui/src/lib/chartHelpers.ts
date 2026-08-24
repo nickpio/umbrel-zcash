@@ -1,17 +1,18 @@
 export const SECONDS_PER_HOUR = 3600
 export const MS_PER_HOUR = 3600000
-export const BYTES_PER_MB = 1_000_000
+export const BYTES_PER_KB = 1_000
 
-export function bytesToMB(bytes: number): number {
-	return bytes / BYTES_PER_MB
+export function bytesToKB(bytes: number): number {
+	return bytes / BYTES_PER_KB
 }
 
-export function mbToBytes(mb: number): number {
-	return mb * BYTES_PER_MB
+export function zatToZEC(zat: number): number {
+	return zat / 1e8
 }
 
-export function satsToBTC(sats: number): number {
-	return sats / 1e8
+export function formatZec(zec: number): string {
+	if (!Number.isFinite(zec) || zec === 0) return '0'
+	return zec.toFixed(8).replace(/\.?0+$/, '')
 }
 
 // Calculate hours ago from a Unix timestamp (seconds)

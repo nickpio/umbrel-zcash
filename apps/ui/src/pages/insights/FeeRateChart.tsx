@@ -35,16 +35,14 @@ export default function FeeRateChart() {
 	const chartData = slice.map((p) => ({
 		block: p.height,
 		hoursAgo: calculateHoursAgo(p.time),
-		p10: p.feeRates.p10,
 		p50: p.feeRates.p50,
-		p90: p.feeRates.p90,
 	}))
 
 	// Defer the data to avoid blocking the main thread and allow the chart to render immediately and the dock tab to animate smoothly
 	const deferredData = useDeferredValue(chartData)
 
 	return (
-		<ChartCard title='Median Fee Rate' loading={isLoading} syncing={inIBD}>
+		<ChartCard title='Median Fee' loading={isLoading} syncing={inIBD}>
 			<ChartContainer config={SERIES}>
 				<AreaChart data={deferredData} margin={DEFAULT_CHART_MARGIN}>
 					{/* Gradient definitions */}
@@ -92,8 +90,10 @@ export default function FeeRateChart() {
 
 									{/* Fee Rate */}
 									<div className='flex items-center gap-2'>
-										<span className='text-white/60'>Median Fee Rate</span>
-										<span className='ml-auto font-mono tabular-nums text-[#F4B728]'>{d.p50} sat/vB</span>
+										<span className='text-white/60'>Median fee</span>
+										<span className='ml-auto font-mono tabular-nums text-[#F4B728]'>
+											{Number(d.p50).toLocaleString()} zat
+										</span>
 									</div>
 								</div>
 							)
@@ -103,7 +103,7 @@ export default function FeeRateChart() {
 					{/* axes / grid / data */}
 					<CartesianGrid {...DEFAULT_GRID_PROPS} />
 
-					<YAxis {...makeYAxis('sat/vB')} domain={[0, (dataMax: number) => Math.ceil(dataMax) + 1]} />
+					<YAxis {...makeYAxis('zat')} domain={[0, (dataMax: number) => Math.ceil(dataMax) + 1]} />
 
 					{/* Main x-axis that we plot against (hours-ago) */}
 					<XAxis
