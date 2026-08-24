@@ -3,7 +3,6 @@ import path from 'node:path'
 import type {ConnectionDetails} from '#types'
 import {LIGHTWALLETD_DIR} from '../../lib/paths.js'
 import {certDaysRemaining, tailscaleTlsActive, walletUriScheme} from '../lightwalletd/tls.js'
-import {vizorHttps} from '../vizor-https/manager.js'
 
 export async function getConnectionDetails(): Promise<ConnectionDetails> {
 	const localHost = process.env['DEVICE_DOMAIN_NAME'] ?? '127.0.0.1'
@@ -66,7 +65,6 @@ export async function getConnectionDetails(): Promise<ConnectionDetails> {
 				uri: `http://${localHost}:${rpcPort}`,
 			},
 		},
-		vizorHttps: vizorHttps.status(),
 	}
 
 	if (tailscaleHost && usingTailscaleTls) {
@@ -78,9 +76,4 @@ export async function getConnectionDetails(): Promise<ConnectionDetails> {
 	}
 
 	return details
-}
-
-export async function setVizorHttpsEnabled(enabled: boolean): Promise<ConnectionDetails> {
-	await vizorHttps.setEnabled(enabled)
-	return getConnectionDetails()
 }

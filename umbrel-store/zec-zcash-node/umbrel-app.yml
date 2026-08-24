@@ -9,9 +9,9 @@ description: >-
   lightwalletd wallet server so Vizor, Zodl, Ywallet, and Zingo can connect
   to your own node.
 releaseNotes: >-
-  Connect → Wallet can mint a Let’s Encrypt certificate via Tailscale and put
-  HTTPS in front of lightwalletd, which is what release Vizor accepts. Other
-  wallets can still use the plaintext host and port.
+  Use the Umbrel Tailscale app for Vizor HTTPS: on start the app fetches a
+  MagicDNS Let’s Encrypt cert and lightwalletd presents it on port 9067.
+  Removed the in-app Caddy/userspace Tailscale front.
 developer: Zcash Node
 website: https://zebra.zfnd.org
 dependencies: []

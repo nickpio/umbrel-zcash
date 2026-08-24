@@ -9,11 +9,7 @@ export function useConnectionDetails() {
 	return useQuery({
 		queryKey: ['connect', 'details'],
 		queryFn: () => api<ConnectionDetails>('/connect/details'),
-		staleTime: 2_000,
-		refetchInterval: (query) => {
-			const state = query.state.data?.vizorHttps?.state
-			if (state === 'starting' || state === 'needs_login' || state === 'issuing_cert') return 2_000
-			return 60_000
-		},
+		staleTime: 60_000,
+		refetchInterval: 60_000,
 	})
 }

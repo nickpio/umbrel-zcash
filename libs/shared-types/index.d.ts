@@ -131,25 +131,11 @@ export type RpcEndpointDetails = EndpointDetails & {
 	password: string
 }
 
-export type VizorHttpsState = 'off' | 'starting' | 'needs_login' | 'issuing_cert' | 'ready' | 'error'
-
-export type VizorHttpsStatus = {
-	enabled: boolean
-	state: VizorHttpsState
-	loginUrl?: string
-	host?: string
-	port?: string
-	uri?: string
-	hostPort?: string
-	exposure?: 'funnel' | 'tailnet'
-	error?: string
-}
-
 export type ConnectionDetails = {
 	wallet: {
 		tor: EndpointDetails
 		local: EndpointDetails
-		/** Present when Umbrel Tailscale MagicDNS hostname is known. */
+		/** Present when Umbrel Tailscale MagicDNS hostname is known and cert is active. */
 		tailscale?: EndpointDetails
 	}
 	/** True when lightwalletd is presenting a Tailscale Let's Encrypt cert. */
@@ -164,5 +150,4 @@ export type ConnectionDetails = {
 		tor: RpcEndpointDetails
 		local: RpcEndpointDetails
 	}
-	vizorHttps: VizorHttpsStatus
 }

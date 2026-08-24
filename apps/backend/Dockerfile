@@ -11,27 +11,11 @@ FROM zakuracore/zakura:1.2.0 AS zakura
 FROM electriccoinco/lightwalletd:v0.4.17 AS lightwalletd
 
 ##########################################################
-# Caddy + Tailscale (static binaries for Vizor HTTPS)
-##########################################################
-FROM debian:bookworm-slim AS nettools
-ARG TARGETARCH
-ENV CADDY_VERSION=2.10.2
-ENV TAILSCALE_VERSION=1.86.2
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
- && rm -rf /var/lib/apt/lists/* \
- && ARCH="${TARGETARCH:-amd64}" \
- && curl -fsSL "https://github.com/caddyserver/caddy/releases/download/v${CADDY_VERSION}/caddy_${CADDY_VERSION}_linux_${ARCH}.tar.gz" \
-    | tar -xz -C /usr/local/bin caddy \
- && curl -fsSL "https://pkgs.tailscale.com/stable/tailscale_${TAILSCALE_VERSION}_${ARCH}.tgz" -o /tmp/tailscale.tgz \
- && tar -xzf /tmp/tailscale.tgz -C /tmp \
- && mv /tmp/tailscale_${TAILSCALE_VERSION}_${ARCH}/tailscale /tmp/tailscale_${TAILSCALE_VERSION}_${ARCH}/tailscaled /usr/local/bin/ \
- && chmod +x /usr/local/bin/caddy /usr/local/bin/tailscale /usr/local/bin/tailscaled \
- && rm -rf /tmp/tailscale.tgz /tmp/tailscale_${TAILSCALE_VERSION}_${ARCH}
-
-##########################################################
 # Dependencies layer
 ##########################################################
 FROM node:22-trixie-slim AS deps
+RUN apt-get update && apt-get install -y --no-install-recommends openssl \
+ && rm -rf /var/lib/apt/lists/*
 WORKDIR /repo
 
 COPY package*.json ./
@@ -53,9 +37,6 @@ VOLUME /data
 COPY --from=zebra /usr/local/bin/zebrad /usr/local/bin/zebrad
 COPY --from=zakura /usr/local/bin/zakurad /usr/local/bin/zakurad
 COPY --from=lightwalletd /usr/local/bin/lightwalletd /usr/local/bin/lightwalletd
-COPY --from=nettools /usr/local/bin/caddy /usr/local/bin/caddy
-COPY --from=nettools /usr/local/bin/tailscale /usr/local/bin/tailscale
-COPY --from=nettools /usr/local/bin/tailscaled /usr/local/bin/tailscaled
 
 RUN mkdir -p /home/node/.cache \
  && ln -sfn /data/zebra /home/node/.cache/zebra \
@@ -78,6 +59,8 @@ RUN tsc -b libs/shared-types libs/settings apps/backend \
 # runtime stage
 ########################################
 FROM node:22-trixie-slim AS runtime
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 COPY package*.json ./
@@ -92,13 +75,8 @@ COPY --from=app-builder /repo/libs/shared-types/dist ./libs/shared-types/dist
 COPY --from=zebra /usr/local/bin/zebrad /usr/local/bin/zebrad
 COPY --from=zakura /usr/local/bin/zakurad /usr/local/bin/zakurad
 COPY --from=lightwalletd /usr/local/bin/lightwalletd /usr/local/bin/lightwalletd
-COPY --from=nettools /usr/local/bin/caddy /usr/local/bin/caddy
-COPY --from=nettools /usr/local/bin/tailscale /usr/local/bin/tailscale
-COPY --from=nettools /usr/local/bin/tailscaled /usr/local/bin/tailscaled
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
- && rm -rf /var/lib/apt/lists/* \
- && mkdir -p /home/node/.cache \
+RUN mkdir -p /home/node/.cache \
  && ln -sfn /data/zebra /home/node/.cache/zebra \
  && ln -sfn /data/zakura /home/node/.cache/zakura \
  && chown -h 1000:1000 /home/node/.cache /home/node/.cache/zebra /home/node/.cache/zakura

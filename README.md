@@ -7,7 +7,7 @@ This app is a fork of [umbrel-bitcoin](https://github.com/getumbrel/umbrel-bitco
 ## Architecture
 
 - **Zebra (`zebrad`) or Zakura (`zakurad`).** Consensus full node. JSON-RPC on port `8232`, P2P on `8233`. Pick one under Settings → Network. Default is Zebra 6.3.0. Zakura 1.2.0 is the other option.
-- **lightwalletd.** Compact-block gRPC server on port `9067`. This is the wallet connection surface (the Electrum equivalent). It listens in plaintext by default so a TLS terminator with a publicly trusted certificate can sit in front.
+- **lightwalletd.** Compact-block gRPC server on port `9067`. This is the wallet connection surface (the Electrum equivalent). It listens in plaintext by default. When a publicly trusted certificate is available (Umbrel Tailscale Let’s Encrypt, or `LIGHTWALLETD_TLS_CERT` / `LIGHTWALLETD_TLS_KEY`), it serves TLS for Vizor.
 - **App UI.** React dashboard served by a Fastify backend that manages the selected node and lightwalletd.
 
 Both binaries ship in the production image. Only one node runs at a time. Wallets keep talking to lightwalletd on `9067` either way.
@@ -36,13 +36,16 @@ Zodl, Ywallet, and Zingo can use the plaintext URI:
 zingo-cli --server http://127.0.0.1:9067
 ```
 
-**Vizor** (and Zashi) will not connect to this URI. Release Vizor requires `https://` and verifies the certificate against Mozilla’s webpki roots, not the OS trust store. A self-signed cert, mkcert, or a CA you install on the machine all fail. HTTP is accepted only for `localhost` in Vizor debug builds.
+**Vizor** requires `https://` and verifies the certificate against Mozilla’s webpki roots (not the OS trust store). Self-signed certs fail.
 
-Use **Connect → Wallet → Vizor HTTPS → Enable**. The app starts Tailscale in userspace, asks you to log in, mints a Let’s Encrypt certificate for `*.ts.net`, and puts Caddy in front of plaintext lightwalletd over HTTP/2. Paste the `hostname.ts.net:443` value into Vizor. Vizor’s network (mainnet vs testnet) must match this node.
+### Vizor over Umbrel Tailscale
 
-If Funnel is enabled on the tailnet, Vizor can reach that URL from the public internet. Otherwise the URL is tailnet-only and the phone also needs Tailscale. Optional `TS_AUTHKEY` skips the interactive login. Enable HTTPS Certificates in the Tailscale admin console.
+1. Install and log into the Umbrel **Tailscale** app.
+2. In the [Tailscale admin console](https://login.tailscale.com/admin/dns), enable **MagicDNS** and **HTTPS Certificates**.
+3. Restart this Zcash Node app. On start it fetches a Let’s Encrypt cert for your MagicDNS name and lightwalletd presents it on port `9067`.
+4. Open **Connect → Wallet → Tailscale** and paste `https://<machine>.<tailnet>.ts.net:9067` into Vizor.
 
-Alternatively, put Caddy, nginx, or certbot in front with a Let’s Encrypt certificate on a public hostname. To make lightwalletd itself speak TLS, set `LIGHTWALLETD_TLS_CERT` and `LIGHTWALLETD_TLS_KEY` to a publicly trusted PEM pair.
+Clients must be on your tailnet. Restart the app periodically (or after ~60 days) so the cert renews. Alternatively set `LIGHTWALLETD_TLS_CERT` and `LIGHTWALLETD_TLS_KEY` to any publicly trusted PEM pair.
 
 ## Production image
 
@@ -56,5 +59,4 @@ docker compose -f docker-compose.prod.yml up
 - `zcashd` reached end of life in July 2026. This app does not ship it.
 - Zebra's official images are currently **amd64**. ARM devices may need a locally built `zebrad`.
 - Zakura 1.2.0 publishes amd64 and arm64 images. The app image still copies Zebra from an amd64-only tag, so a multi-arch build is not automatic.
-- lightwalletd listens in plaintext on LAN and Tor by default. Release Vizor needs the in-app Vizor HTTPS front (or another publicly trusted HTTPS terminator). Prefer the Tor hidden service only for wallets that accept `http://`.
-- If the Umbrel Tailscale app is installed and MagicDNS + HTTPS Certificates are enabled on the tailnet, app start fetches a Let’s Encrypt cert into `data/lightwalletd/tls/` and lightwalletd can present it on port `9067` (same as setting `LIGHTWALLETD_TLS_CERT` / `LIGHTWALLETD_TLS_KEY`). Restart the app to renew (certs last ~90 days).
+- lightwalletd is plaintext on LAN and Tor unless a trusted TLS cert is configured. Prefer Tor only for wallets that accept `http://`. While a Tailscale cert is active, Vizor must use the MagicDNS https:// URI (LAN/Tor hostnames will fail certificate checks).

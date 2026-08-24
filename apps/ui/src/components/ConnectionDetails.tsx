@@ -1,4 +1,4 @@
-import {useState} from 'react'
+import {useEffect, useState} from 'react'
 import QrSvg from '@wojtekmaj/react-qr-svg'
 import copy from 'copy-to-clipboard'
 import {Copy, TriangleAlert, LockKeyhole, X as XIcon} from 'lucide-react'
@@ -23,13 +23,13 @@ import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover'
 import WalletIcon from '@/assets/wallet.svg?react'
 import {GradientBorderFromTop} from '@/components/shared/GradientBorders'
 import FadeScrollArea from '@/components/shared/FadeScrollArea'
-import {VizorHttpsCard} from '@/components/VizorHttpsCard'
 
-import type {ConnectionDetails as ConnectionDetailsType} from '#types'
+import type {ConnectionDetails as ConnectionDetailsType, EndpointDetails} from '#types'
 import {useConnectionDetails} from '@/hooks/useConnectionDetails'
 import {useSettings} from '@/hooks/useSettings'
 
 type TabId = 'wallet' | 'rpc' | 'p2p'
+type NetId = 'tor' | 'local' | 'tailscale'
 
 export default function ConnectionDetails() {
 	const {data} = useConnectionDetails()
@@ -37,10 +37,45 @@ export default function ConnectionDetails() {
 	const chainName = (settings as {chain?: string} | undefined)?.['chain'] === 'Testnet' ? 'testnet' : 'mainnet'
 
 	const [tab, setTab] = useState<TabId>('wallet')
-	const [net, setNet] = useState<'tor' | 'local'>('tor')
+	const [net, setNet] = useState<NetId>('tor')
+	const [walletDefaultApplied, setWalletDefaultApplied] = useState(false)
 
-	const details = data?.[tab]?.[net] ?? {}
-	const conn = details as Partial<ConnectionDetailsType['rpc']['tor']>
+	const hasTailscale = !!data?.wallet?.tailscale
+	const tailscaleTls = !!data?.tailscaleTls
+	const certDays = data?.tailscaleCertDaysRemaining ?? null
+
+	useEffect(() => {
+		if (!data || walletDefaultApplied) return
+		if (data.tailscaleTls && data.wallet.tailscale) {
+			setNet('tailscale')
+		}
+		setWalletDefaultApplied(true)
+	}, [data, walletDefaultApplied])
+
+	const handleTabChange = (next: TabId) => {
+		setTab(next)
+		if (next !== 'wallet' && net === 'tailscale') {
+			setNet('local')
+		}
+	}
+
+	const handleNetChange = (next: NetId) => {
+		if (tab !== 'wallet' && next === 'tailscale') {
+			setNet('local')
+			return
+		}
+		setNet(next)
+	}
+
+	const conn: Partial<EndpointDetails & {username?: string; password?: string}> = (() => {
+		if (!data) return {}
+		if (tab === 'wallet') {
+			if (net === 'tailscale') return data.wallet.tailscale ?? {}
+			return data.wallet[net] ?? {}
+		}
+		const rpcOrP2pNet = net === 'tailscale' ? 'local' : net
+		return data[tab][rpcOrP2pNet] ?? {}
+	})()
 
 	return (
 		<Dialog>
@@ -74,7 +109,7 @@ export default function ConnectionDetails() {
 					</DialogDescription>
 				</DialogHeader>
 
-				<Tabs value={tab} onValueChange={(v: string) => setTab(v as TabId)}>
+				<Tabs value={tab} onValueChange={(v: string) => handleTabChange(v as TabId)}>
 					<div className='relative w-full after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-white/20'>
 						<TabsList className='relative flex bg-transparent rounded-none h-auto p-0 gap-1 z-10 w-max'>
 							<TabsTrigger
@@ -101,22 +136,34 @@ export default function ConnectionDetails() {
 					<FadeScrollArea className='h-[min(480px,calc(90vh-200px))]'>
 						<div className='space-y-4 mt-4 flex'>
 							<TabsContent value='wallet' className='mt-0 min-h-[360px]'>
-								<div className='space-y-4'>
-									<VizorHttpsCard status={data?.vizorHttps} chainName={chainName} />
-									<div className='flex flex-col sm:flex-row gap-4'>
-										<ConnectionTypeAndQrCard net={net} setNet={setNet} conn={conn} />
-										<div className='divide-y divide-white/6 overflow-hidden rounded-xl w-full h-fit bg-gradient-to-b from-[#1C1C1C] to-[#0D0D0D]'>
-											<Field label='Host' value={conn.host} />
-											<Field label='Port' value={conn.port?.toString()} />
-											<Field label='URI' value={conn.uri} />
-										</div>
+								<div className='flex flex-col sm:flex-row gap-4'>
+									<ConnectionTypeAndQrCard
+										net={net}
+										setNet={handleNetChange}
+										conn={conn}
+										showTailscale={hasTailscale}
+									/>
+									<div className='divide-y divide-white/6 overflow-hidden rounded-xl w-full h-fit bg-gradient-to-b from-[#1C1C1C] to-[#0D0D0D]'>
+										<Field label='Host' value={conn.host} />
+										<Field label='Port' value={conn.port?.toString()} />
+										<Field label='URI' value={conn.uri} />
 									</div>
+								</div>
+								<div className='mt-4 space-y-3'>
+									<WalletAlerts
+										net={net}
+										hasTailscale={hasTailscale}
+										tailscaleTls={tailscaleTls}
+										certDays={certDays}
+										chainName={chainName}
+									/>
 									<div className='rounded-xl bg-white/6 px-4 py-4 space-y-3'>
-										<h5 className='text-white/80 text-[14px] font-[500]'>Other wallets</h5>
+										<h5 className='text-white/80 text-[14px] font-[500]'>Wallet setup</h5>
 										<ol className='text-white/70 text-[13px] font-[400] space-y-2 list-decimal list-inside'>
 											<li>
-												<span className='text-white/90'>Vizor:</span> Use the HTTPS card above. Release Vizor will not
-												accept the plaintext URI. Set Vizor to {chainName}.
+												<span className='text-white/90'>Vizor:</span> Settings → custom lightwalletd endpoint, then paste
+												the Tailscale https:// URI. Release Vizor requires a publicly trusted certificate. Set Vizor to{' '}
+												{chainName}.
 											</li>
 											<li>
 												<span className='text-white/90'>Zodl:</span> Settings → Connect to a server → custom, then enter
@@ -141,23 +188,23 @@ export default function ConnectionDetails() {
 
 							<TabsContent value='rpc' className='mt-0 min-h-[360px]'>
 								<div className='flex flex-col sm:flex-row gap-4'>
-									<ConnectionTypeAndQrCard net={net} setNet={setNet} conn={conn} />
+									<ConnectionTypeAndQrCard net={net === 'tailscale' ? 'local' : net} setNet={handleNetChange} conn={conn} />
 									<div className='divide-y divide-white/6 overflow-hidden rounded-xl w-full h-fit bg-gradient-to-b from-[#1C1C1C] to-[#0D0D0D]'>
 										<Field label='Host' value={conn.host} />
 										<Field label='Port' value={conn.port?.toString()} />
 										<Field label='URI' value={conn.uri} />
 									</div>
 								</div>
-								{net === 'local' && (
+								{(net === 'local' || net === 'tailscale') && (
 									<div className='mt-4'>
-										<LocalRPCAlert net={net} />
+										<LocalRPCAlert />
 									</div>
 								)}
 							</TabsContent>
 
 							<TabsContent value='p2p' className='mt-0 min-h-[360px]'>
 								<div className='flex flex-col sm:flex-row gap-4'>
-									<ConnectionTypeAndQrCard net={net} setNet={setNet} conn={conn} />
+									<ConnectionTypeAndQrCard net={net === 'tailscale' ? 'local' : net} setNet={handleNetChange} conn={conn} />
 									<div className='divide-y divide-white/6 overflow-hidden rounded-xl w-full h-fit bg-gradient-to-b from-[#1C1C1C] to-[#0D0D0D]'>
 										<Field label='Host' value={conn.host} />
 										<Field label='Port' value={conn.port?.toString()} />
@@ -169,6 +216,62 @@ export default function ConnectionDetails() {
 				</Tabs>
 			</DialogContent>
 		</Dialog>
+	)
+}
+
+function WalletAlerts({
+	net,
+	hasTailscale,
+	tailscaleTls,
+	certDays,
+	chainName,
+}: {
+	net: NetId
+	hasTailscale: boolean
+	tailscaleTls: boolean
+	certDays: number | null
+	chainName: string
+}) {
+	return (
+		<>
+			{tailscaleTls && certDays !== null && certDays < 21 && (
+				<Alert className='bg-[#EDCE0017] text-[#EDCE00] border-none'>
+					<TriangleAlert className='h-4 w-4' />
+					<AlertDescription className='text-[#EDCE00]'>
+						The Tailscale certificate expires in {certDays} day{certDays === 1 ? '' : 's'}. Restart this app to renew
+						it (a fresh cert is fetched on start).
+					</AlertDescription>
+				</Alert>
+			)}
+			{tailscaleTls && net === 'tailscale' && (
+				<Alert className='bg-[#00BFA317] text-[#00BFA3] border-none'>
+					<LockKeyhole className='h-4 w-4' />
+					<AlertDescription className='text-[#00BFA3]'>
+						lightwalletd is presenting a Tailscale Let’s Encrypt certificate. Paste this https:// URI into Vizor. Clients
+						must be on your tailnet. Set Vizor to {chainName}.
+					</AlertDescription>
+				</Alert>
+			)}
+			{tailscaleTls && net !== 'tailscale' && (
+				<Alert className='bg-[#EDCE0017] text-[#EDCE00] border-none'>
+					<TriangleAlert className='h-4 w-4' />
+					<AlertDescription className='text-[#EDCE00]'>
+						A Tailscale certificate is active, so LAN and Tor URIs will fail hostname checks in Vizor. Switch to
+						Tailscale and paste that https:// URI instead.
+					</AlertDescription>
+				</Alert>
+			)}
+			{!hasTailscale && (
+				<Alert className='bg-[#EDCE0017] text-[#EDCE00] border-none'>
+					<TriangleAlert className='h-4 w-4' />
+					<AlertDescription className='text-[#EDCE00]'>
+						Release Vizor needs a publicly trusted https:// endpoint. Install the Umbrel Tailscale app, enable MagicDNS
+						and HTTPS Certificates in the Tailscale admin console, then restart this app. Zodl, Ywallet, and Zingo can
+						use the Local or Tor URI above.
+					</AlertDescription>
+				</Alert>
+			)}
+		</>
 	)
 }
 
@@ -263,21 +366,25 @@ function ConnectionTypeAndQrCard({
 	net,
 	setNet,
 	conn,
+	showTailscale = false,
 }: {
 	net: string
-	setNet: (v: 'tor' | 'local') => void
+	setNet: (v: NetId) => void
 	conn: Partial<ConnectionDetailsType['rpc']['tor']>
+	showTailscale?: boolean
 }) {
+	const widthClass = showTailscale ? 'w-[280px]' : 'w-[200px]'
+
 	return (
 		<div className='bg-gradient-to-b from-[#1C1C1C] to-[#0D0D0D] p-5 rounded-xl'>
 			<h3 className='text-white/60 text-[12px] font-[400] mb-2 text-center'>Connection Type</h3>
-			<Tabs value={net} onValueChange={(v: string) => setNet(v as 'tor' | 'local')} className='w-[200px] mx-auto mb-3'>
+			<Tabs value={net} onValueChange={(v: string) => setNet(v as NetId)} className={`${widthClass} mx-auto mb-3`}>
 				<TabsList className='relative flex w-full rounded-md bg-[#121212] backdrop-blur-xl p-1 ring-white/10'>
 					<GradientBorderFromTop />
 
 					<TabsTrigger
 						value='local'
-						className='relative cursor-pointer rounded-md py-2 px-4 text-[12px] font-[400] text-white/60 data-[state=active]:text-white transition-colors data-[state=active]:bg-transparent'
+						className='relative cursor-pointer rounded-md py-2 px-3 text-[12px] font-[400] text-white/60 data-[state=active]:text-white transition-colors data-[state=active]:bg-transparent'
 					>
 						{net === 'local' && (
 							<motion.span
@@ -293,7 +400,7 @@ function ConnectionTypeAndQrCard({
 
 					<TabsTrigger
 						value='tor'
-						className='relative cursor-pointer rounded-md py-2 px-4 text-[12px] font-[400] text-white/60 data-[state=active]:text-white transition-colors data-[state=active]:bg-transparent'
+						className='relative cursor-pointer rounded-md py-2 px-3 text-[12px] font-[400] text-white/60 data-[state=active]:text-white transition-colors data-[state=active]:bg-transparent'
 					>
 						{net === 'tor' && (
 							<motion.span
@@ -306,6 +413,24 @@ function ConnectionTypeAndQrCard({
 						)}
 						Tor
 					</TabsTrigger>
+
+					{showTailscale && (
+						<TabsTrigger
+							value='tailscale'
+							className='relative cursor-pointer rounded-md py-2 px-3 text-[12px] font-[400] text-white/60 data-[state=active]:text-white transition-colors data-[state=active]:bg-transparent'
+						>
+							{net === 'tailscale' && (
+								<motion.span
+									layoutId='connection-pill'
+									className='absolute inset-0 -z-10 rounded-sm bg-[#252525]'
+									transition={{type: 'tween', ease: 'easeInOut', duration: 0.2}}
+								>
+									<GradientBorderFromTop />
+								</motion.span>
+							)}
+							Tailscale
+						</TabsTrigger>
+					)}
 				</TabsList>
 			</Tabs>
 			<QR value={conn.uri} />
@@ -313,33 +438,31 @@ function ConnectionTypeAndQrCard({
 	)
 }
 
-function LocalRPCAlert({net}: {net: string}) {
+function LocalRPCAlert() {
 	return (
 		<AnimatePresence>
-			{net === 'local' && (
-				<motion.div
-					initial={{opacity: 0, y: 10}}
-					animate={{opacity: 1, y: 0}}
-					exit={{opacity: 0, y: -10}}
-					transition={{duration: 0.25}}
-					className='flex flex-col gap-3'
-				>
-					<Alert className='bg-[#EDCE0017] text-[#EDCE00] border-none'>
-						<TriangleAlert className='h-4 w-4' />
-						<AlertDescription className='text-[#EDCE00]'>
-							Zebra’s JSON-RPC has cookie auth disabled so lightwalletd can connect. Do not expose port 8232 to the
-							public internet.
-						</AlertDescription>
-					</Alert>
+			<motion.div
+				initial={{opacity: 0, y: 10}}
+				animate={{opacity: 1, y: 0}}
+				exit={{opacity: 0, y: -10}}
+				transition={{duration: 0.25}}
+				className='flex flex-col gap-3'
+			>
+				<Alert className='bg-[#EDCE0017] text-[#EDCE00] border-none'>
+					<TriangleAlert className='h-4 w-4' />
+					<AlertDescription className='text-[#EDCE00]'>
+						Zebra’s JSON-RPC has cookie auth disabled so lightwalletd can connect. Do not expose port 8232 to the
+						public internet.
+					</AlertDescription>
+				</Alert>
 
-					<Alert className='bg-[#00BFA317] text-[#00BFA3] border-none'>
-						<LockKeyhole className='h-4 w-4' />
-						<AlertDescription className='text-[#00BFA3]'>
-							Apps on the same Umbrel device stay on the local Docker network and never leave the machine.
-						</AlertDescription>
-					</Alert>
-				</motion.div>
-			)}
+				<Alert className='bg-[#00BFA317] text-[#00BFA3] border-none'>
+					<LockKeyhole className='h-4 w-4' />
+					<AlertDescription className='text-[#00BFA3]'>
+						Apps on the same Umbrel device stay on the local Docker network and never leave the machine.
+					</AlertDescription>
+				</Alert>
+			</motion.div>
 		</AnimatePresence>
 	)
 }
