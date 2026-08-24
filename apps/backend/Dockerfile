@@ -8,7 +8,7 @@
 ###########################################
 FROM zfnd/zebra:6.3.0 AS zebra
 FROM zakuracore/zakura:1.2.0 AS zakura
-FROM electriccoinco/lightwalletd:v0.4.17 AS lightwalletd
+FROM electriccoinco/lightwalletd:v0.5.0 AS lightwalletd
 
 ##########################################################
 # Dependencies layer

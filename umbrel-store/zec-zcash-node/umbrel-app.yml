@@ -2,16 +2,15 @@ manifestVersion: 1.1
 id: zec-zcash-node
 category: finance
 name: Zcash Node
-version: 0.1.8
+version: 0.1.9
 tagline: Run your own Zcash full node
 description: >-
   Run a Zcash full node on umbrelOS, powered by Zebra or Zakura, with a
   lightwalletd wallet server so Vizor, Zodl, Ywallet, and Zingo can connect
   to your own node.
 releaseNotes: >-
-  Use the Umbrel Tailscale app for Vizor HTTPS: on start the app fetches a
-  MagicDNS Let’s Encrypt cert and lightwalletd presents it on port 9067.
-  Removed the in-app Caddy/userspace Tailscale front.
+  Upgrade lightwalletd to v0.5.0 for Ironwood (NU6.3) / v6 transaction support
+  so Vizor and other wallets can sync past mainnet activation height 3428143.
 developer: Zcash Node
 website: https://zebra.zfnd.org
 dependencies: []
