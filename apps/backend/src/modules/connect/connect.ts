@@ -1,5 +1,8 @@
+import path from 'node:path'
+
 import type {ConnectionDetails} from '#types'
-import {walletUriScheme} from '../lightwalletd/tls.js'
+import {LIGHTWALLETD_DIR} from '../../lib/paths.js'
+import {certDaysRemaining, tailscaleTlsActive, walletUriScheme} from '../lightwalletd/tls.js'
 import {vizorHttps} from '../vizor-https/manager.js'
 
 export async function getConnectionDetails(): Promise<ConnectionDetails> {
@@ -16,8 +19,11 @@ export async function getConnectionDetails(): Promise<ConnectionDetails> {
 
 	const walletPort = process.env['WALLET_PORT'] ?? '9067'
 	const walletTorHost = process.env['WALLET_HIDDEN_SERVICE'] ?? 'wallethidden.onion'
+	const tailscaleHost = process.env['TAILSCALE_HOSTNAME']?.trim().replace(/\.$/, '') || undefined
+	const usingTailscaleTls = tailscaleTlsActive()
+	const tailscaleCertPath = path.join(LIGHTWALLETD_DIR, 'tls', 'tailscale.crt')
 
-	return {
+	const details: ConnectionDetails = {
 		wallet: {
 			tor: {
 				host: walletTorHost,
@@ -30,6 +36,8 @@ export async function getConnectionDetails(): Promise<ConnectionDetails> {
 				uri: `${walletScheme}://${localHost}:${walletPort}`,
 			},
 		},
+		tailscaleTls: usingTailscaleTls,
+		tailscaleCertDaysRemaining: usingTailscaleTls ? certDaysRemaining(tailscaleCertPath) : null,
 		p2p: {
 			tor: {
 				host: p2pTorHost,
@@ -60,6 +68,16 @@ export async function getConnectionDetails(): Promise<ConnectionDetails> {
 		},
 		vizorHttps: vizorHttps.status(),
 	}
+
+	if (tailscaleHost && usingTailscaleTls) {
+		details.wallet.tailscale = {
+			host: tailscaleHost,
+			port: walletPort,
+			uri: `https://${tailscaleHost}:${walletPort}`,
+		}
+	}
+
+	return details
 }
 
 export async function setVizorHttpsEnabled(enabled: boolean): Promise<ConnectionDetails> {

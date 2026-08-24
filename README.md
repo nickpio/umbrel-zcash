@@ -57,3 +57,4 @@ docker compose -f docker-compose.prod.yml up
 - Zebra's official images are currently **amd64**. ARM devices may need a locally built `zebrad`.
 - Zakura 1.2.0 publishes amd64 and arm64 images. The app image still copies Zebra from an amd64-only tag, so a multi-arch build is not automatic.
 - lightwalletd listens in plaintext on LAN and Tor by default. Release Vizor needs the in-app Vizor HTTPS front (or another publicly trusted HTTPS terminator). Prefer the Tor hidden service only for wallets that accept `http://`.
+- If the Umbrel Tailscale app is installed and MagicDNS + HTTPS Certificates are enabled on the tailnet, app start fetches a Let’s Encrypt cert into `data/lightwalletd/tls/` and lightwalletd can present it on port `9067` (same as setting `LIGHTWALLETD_TLS_CERT` / `LIGHTWALLETD_TLS_KEY`). Restart the app to renew (certs last ~90 days).
