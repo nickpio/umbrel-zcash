@@ -8,10 +8,23 @@ export const LIGHTWALLETD_BIN = process.env['LIGHTWALLETD_BIN'] || 'lightwalletd
 
 export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../')
 
-export const ZEBRA_DIR = process.env['CHAIN_STATE_DIR'] || process.env['ZEBRA_DIR'] || path.join(REPO_ROOT, 'data', 'zebra')
-export const ZAKURA_DIR = process.env['ZAKURA_DIR'] || path.join(REPO_ROOT, 'data', 'zakura')
-export const APP_STATE_DIR = process.env['APP_STATE_DIR'] || path.join(REPO_ROOT, 'data', 'app')
-export const LIGHTWALLETD_DIR = process.env['LIGHTWALLETD_DIR'] || path.join(REPO_ROOT, 'data', 'lightwalletd')
+export function resolveDataDirs(env: NodeJS.ProcessEnv, repoRoot: string) {
+	const dataRoot = env['DATA_ROOT'] || path.join(repoRoot, 'data')
+	return {
+		dataRoot,
+		zebraDir: env['CHAIN_STATE_DIR'] || env['ZEBRA_DIR'] || path.join(dataRoot, 'zebra'),
+		zakuraDir: env['ZAKURA_DIR'] || path.join(dataRoot, 'zakura'),
+		appStateDir: env['APP_STATE_DIR'] || path.join(dataRoot, 'app'),
+		lightwalletdDir: env['LIGHTWALLETD_DIR'] || path.join(dataRoot, 'lightwalletd'),
+	}
+}
+
+const dataDirs = resolveDataDirs(process.env, REPO_ROOT)
+
+export const ZEBRA_DIR = dataDirs.zebraDir
+export const ZAKURA_DIR = dataDirs.zakuraDir
+export const APP_STATE_DIR = dataDirs.appStateDir
+export const LIGHTWALLETD_DIR = dataDirs.lightwalletdDir
 
 export const SETTINGS_JSON = path.join(APP_STATE_DIR, 'settings.json')
 export const ZEBRAD_TOML = path.join(APP_STATE_DIR, 'zebrad.toml')

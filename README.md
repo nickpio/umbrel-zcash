@@ -54,6 +54,57 @@ docker build -f apps/backend/Dockerfile -t zcash-node:prod .
 docker compose -f docker-compose.prod.yml up
 ```
 
+## Desktop (Linux x64)
+
+Tagged releases attach an AppImage, `.deb`, and `.tar.gz` for machines that are not running umbrelOS. They bundle the UI, the Fastify supervisor, `zebrad` 6.3.0, `zakurad` 1.2.0, and `lightwalletd` v0.5.0.
+
+Requirements: **glibc 2.34+** (Ubuntu 22.04, Debian 12, current Fedora/Arch). The AppImage does not bundle glibc.
+
+```sh
+chmod +x zcash-node-*-linux-x64.AppImage
+./zcash-node-*-linux-x64.AppImage
+```
+
+Or install the `.deb` and run `zcash-node`. The window loads the dashboard at `http://127.0.0.1:<port>/` (port `3000`, or the next free port).
+
+First-run state is stored under `~/.local/share/zcash-node` (`zebra`, `zakura`, `app`, `lightwalletd`). Override with `ZCASH_NODE_DATA`. Desktop defaults to **Mainnet**. A full sync needs a lot of disk and bandwidth; do not start this on a small disk.
+
+The dashboard binds localhost only. Node P2P (`8233`) and lightwalletd (`9067`) still listen on all interfaces so wallets on the LAN can connect. RPC stays on `8232`.
+
+Headless (home server / systemd), then open the printed localhost URL in a browser:
+
+```sh
+./zcash-node-*-linux-x64.AppImage --headless
+# or: zcash-node --headless
+```
+
+```ini
+# /etc/systemd/system/zcash-node.service
+[Unit]
+Description=Zcash Node
+After=network-online.target
+
+[Service]
+Type=simple
+User=zcash
+ExecStart=/opt/Zcash Node/zcash-node --headless
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Adjust `ExecStart` to the AppImage path or the unpacked `tar.gz` binary. If FUSE is unavailable, extract the AppImage with `--appimage-extract-and-run`.
+
+To build locally:
+
+```sh
+npm ci
+npm run desktop:build
+```
+
+That writes packages under `apps/desktop/release/`. `npm run desktop:dev` opens Electron against `npm run dev` (`http://localhost:5173`) and does not embed the node binaries.
+
 ## Notes
 
 - `zcashd` reached end of life in July 2026. This app does not ship it.

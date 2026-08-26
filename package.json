@@ -8,6 +8,8 @@
 	"type": "module",
 	"scripts": {
 		"dev": "npm run --workspace apps/backend dev & npm run --workspace apps/ui dev",
+		"desktop:dev": "npm run --workspace apps/desktop dev",
+		"desktop:build": "bash scripts/prepare-desktop-runtime.sh && npm run --workspace apps/desktop build",
 		"lint": "eslint .",
 		"lint:fix": "eslint --fix .",
 		"typecheck": "tsc -p tsconfig.base.json --noEmit",

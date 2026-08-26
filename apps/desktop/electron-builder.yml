@@ -1,0 +1,31 @@
+appId: org.zcash.zcash-node
+productName: Zcash Node
+executableName: zcash-node
+copyright: Copyright © Zcash Node
+directories:
+  output: release
+  buildResources: resources
+files:
+  - dist/**/*
+  - package.json
+  - '!**/{pack,release,resources}/**'
+extraResources:
+  - from: pack/app-runtime
+    to: app-runtime
+  - from: resources/bin
+    to: bin
+linux:
+  target:
+    - AppImage
+    - deb
+    - tar.gz
+  category: Network
+  icon: icon.png
+  artifactName: zcash-node-${version}-${os}-${arch}.${ext}
+  desktop:
+    Name: Zcash Node
+    Comment: Run a Zcash full node with a local wallet server
+    Categories: Network;Finance;
+deb:
+  packageName: zcash-node
+asar: true
