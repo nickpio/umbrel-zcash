@@ -61,8 +61,8 @@ Tagged releases attach an AppImage, `.deb`, and `.tar.gz` for machines that are 
 Requirements: **glibc 2.34+** (Ubuntu 22.04, Debian 12, current Fedora/Arch). The AppImage does not bundle glibc.
 
 ```sh
-chmod +x zcash-node-*-linux-x64.AppImage
-./zcash-node-*-linux-x64.AppImage
+chmod +x zcash-node-*-linux-*.AppImage
+./zcash-node-*-linux-*.AppImage
 ```
 
 Or install the `.deb` and run `zcash-node`. The window loads the dashboard at `http://127.0.0.1:<port>/` (port `3000`, or the next free port).
@@ -74,7 +74,7 @@ The dashboard binds localhost only. Node P2P (`8233`) and lightwalletd (`9067`) 
 Headless (home server / systemd), then open the printed localhost URL in a browser:
 
 ```sh
-./zcash-node-*-linux-x64.AppImage --headless
+./zcash-node-*-linux-*.AppImage --headless
 # or: zcash-node --headless
 ```
 

@@ -2,6 +2,10 @@
 	"name": "@zcash-node/desktop",
 	"version": "0.1.10",
 	"private": true,
+	"description": "Run a Zcash full node with a local wallet server",
+	"author": "Zcash Node <zcash-node@users.noreply.github.com>",
+	"homepage": "https://github.com/nickpio/umbrel-zcash",
+	"desktopName": "org.zcash.zcash-node",
 	"main": "dist/main.js",
 	"scripts": {
 		"dev": "tsc -p tsconfig.json && electron .",
@@ -9,7 +13,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "^22.15.17",
-		"electron": "^37.2.0",
+		"electron": "37.10.3",
 		"electron-builder": "^26.0.12",
 		"typescript": "^5.8.3"
 	}
