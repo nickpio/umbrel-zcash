@@ -5,7 +5,14 @@ import {formatDistanceStrict} from 'date-fns'
 import {ChartContainer, ChartTooltip} from '@/components/ui/chart'
 
 import {ChartCard, DEFAULT_CHART_MARGIN, DEFAULT_GRID_PROPS, makeXAxis, makeYAxis} from './ChartDefaults'
-import {sliceLast24h, findClosestDataPoint, calculateHoursAgo, hoursToMs} from '@/lib/chartHelpers'
+import {
+	sliceLast24h,
+	findClosestDataPoint,
+	calculateHoursAgo,
+	hoursToMs,
+	hoursAxisFromData,
+	formatLastHoursLabel,
+} from '@/lib/chartHelpers'
 
 import {useBlocks} from '@/hooks/useBlocks'
 import {useSyncStatus} from '@/hooks/useSyncStatus'
@@ -25,11 +32,9 @@ export default function FeeRateChart() {
 	const stage = syncStage(syncStatus)
 	const inIBD = stage !== 'synced' // 'pre-headers' | 'headers' | 'IBD'
 
-	// 144 blocks is exactly 24 hours at 1 block per 10 min.
-	// 200 blocks ensures we have 24 hours of data even at worst-case historical block times
+	// Zcash targets ~75s blocks, so 200 blocks is ~4.2 hours. The x-axis follows that span.
 	const {data: raw = [], isLoading} = useBlocks({limit: 200, stage})
 
-	// slice the last 24 hours of data
 	const {slice} = sliceLast24h(raw)
 
 	const chartData = slice.map((p) => ({
@@ -40,9 +45,11 @@ export default function FeeRateChart() {
 
 	// Defer the data to avoid blocking the main thread and allow the chart to render immediately and the dock tab to animate smoothly
 	const deferredData = useDeferredValue(chartData)
+	const hoursAxis = hoursAxisFromData(deferredData.map((d) => d.hoursAgo))
+	const title = deferredData.length ? `Median Fee · ${formatLastHoursLabel(hoursAxis.domainMax)}` : 'Median Fee'
 
 	return (
-		<ChartCard title='Median Fee' loading={isLoading} syncing={inIBD}>
+		<ChartCard title={title} loading={isLoading} syncing={inIBD}>
 			<ChartContainer config={SERIES}>
 				<AreaChart data={deferredData} margin={DEFAULT_CHART_MARGIN}>
 					{/* Gradient definitions */}
@@ -111,8 +118,8 @@ export default function FeeRateChart() {
 						{...makeXAxis('')}
 						type='number'
 						dataKey='hoursAgo'
-						domain={[24, 0]}
-						ticks={[24, 18, 12, 6, 0]}
+						domain={hoursAxis.domain}
+						ticks={hoursAxis.ticks}
 						tickFormatter={(h) => (h === 0 ? 'now' : `-${h} h`)}
 						reversed
 					/>
@@ -124,8 +131,7 @@ export default function FeeRateChart() {
 						type='number'
 						// reuses the same scale as the "hours-ago" axis
 						dataKey='hoursAgo'
-						// only show ticks at 24, 18, 12, and 6 hours ago, not 0
-						ticks={[24, 18, 12, 6]}
+						ticks={hoursAxis.heightTicks}
 						// map each tick's hours-ago value to the nearest datapoint's block-height for a pseudo-accurate label
 						tickFormatter={(h) => {
 							const closest = findClosestDataPoint(deferredData, h, (item) => item.hoursAgo)

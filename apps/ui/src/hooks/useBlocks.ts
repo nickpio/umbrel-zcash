@@ -6,7 +6,7 @@ import type {Block} from '#types'
 import type {SyncStage} from '@/lib/sync-progress'
 
 // Pure REST query for Block[] data.
-// Used by both the home page (limit=5) and insights charts (limit=200).
+// Used by both the home page (limit=5) and insights charts (limit=200, ~4h of Zcash blocks).
 //
 // Data flow:
 //   1. Initial fetch on mount (or when stage transitions to 'synced')

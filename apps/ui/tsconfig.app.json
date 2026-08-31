@@ -31,5 +31,6 @@
 			"#types": ["../../libs/shared-types/index.d.ts"]
 		}
 	},
-	"include": ["src", "tailwind.config.ts"]
+	"include": ["src", "tailwind.config.ts"],
+	"exclude": ["src/**/*.test.ts"]
 }
