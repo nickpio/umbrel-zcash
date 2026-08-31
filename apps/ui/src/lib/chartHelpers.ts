@@ -24,7 +24,57 @@ export function hoursToMs(hours: number): number {
 	return hours * MS_PER_HOUR
 }
 
-// Slice the last 24 hours of data from a list of blocks
+// Snap an hours-ago span to a readable ceiling so Recharts ticks stay on whole hours.
+// Zcash targets ~75s blocks, so 200 blocks is ~4.2h — not Bitcoin's 24h / 144-block window.
+const HOURS_AXIS_CEILINGS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 18, 24, 36, 48, 72] as const
+
+export type HoursAxis = {
+	domainMax: number
+	domain: [number, number]
+	ticks: number[]
+	heightTicks: number[]
+}
+
+function hoursAxisStep(domainMax: number): number {
+	if (domainMax <= 6) return 1
+	if (domainMax <= 12) return 2
+	if (domainMax <= 24) return 6
+	if (domainMax <= 48) return 12
+	return 24
+}
+
+export function hoursAxisFromData(hoursAgo: Iterable<number>): HoursAxis {
+	let maxHours = 0
+	let hasPoint = false
+	for (const value of hoursAgo) {
+		if (!Number.isFinite(value) || value < 0) continue
+		hasPoint = true
+		if (value > maxHours) maxHours = value
+	}
+
+	// Empty input keeps the historical 24h domain so a chart with no points still has a scale.
+	const domainMax = hasPoint
+		? (HOURS_AXIS_CEILINGS.find((ceiling) => ceiling >= maxHours) ?? Math.ceil(maxHours))
+		: 24
+
+	const step = hoursAxisStep(domainMax)
+	const ticks: number[] = [domainMax]
+	for (let t = domainMax - step; t > 0; t -= step) ticks.push(t)
+	ticks.push(0)
+
+	return {
+		domainMax,
+		domain: [domainMax, 0],
+		ticks,
+		heightTicks: ticks.filter((t) => t !== 0),
+	}
+}
+
+export function formatLastHoursLabel(domainMax: number): string {
+	return domainMax === 1 ? 'last 1 hour' : `last ${domainMax} hours`
+}
+
+// Safety cap: drop points older than 24h. Chart axes use hoursAxisFromData, not this window.
 // TODO: remove minBlock and maxBlock from the return value if we end up not using them for graph titles
 export function sliceLast24h<T extends {height: number; time: number}>(rows: T[]) {
 	const cutoff = Date.now() / 1000 - 24 * SECONDS_PER_HOUR

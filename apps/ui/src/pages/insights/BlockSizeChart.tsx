@@ -12,6 +12,8 @@ import {
 	calculateHoursAgo,
 	bytesToKB,
 	hoursToMs,
+	hoursAxisFromData,
+	formatLastHoursLabel,
 } from '@/lib/chartHelpers'
 
 import {useBlocks} from '@/hooks/useBlocks'
@@ -32,11 +34,9 @@ export default function BlockSizeChart() {
 	const stage = syncStage(syncStatus)
 	const inIBD = stage !== 'synced' // 'pre-headers' | 'headers' | 'IBD'
 
-	// 144 blocks is exactly 24 hours at 1 block per 10 min.
-	// 200 blocks ensures we have 24 hours of data even at worst-case historical block times
+	// Zcash targets ~75s blocks, so 200 blocks is ~4.2 hours. The x-axis follows that span.
 	const {data: raw = [], isLoading} = useBlocks({limit: 200, stage})
 
-	// slice the last 24 hours of data
 	const {slice} = sliceLast24h(raw)
 
 	const chartData = slice.map((p) => ({
@@ -48,9 +48,11 @@ export default function BlockSizeChart() {
 
 	// Defer the data to avoid blocking the main thread and allow the chart to render immediately and the dock tab to animate smoothly
 	const deferredData = useDeferredValue(chartData)
+	const hoursAxis = hoursAxisFromData(deferredData.map((d) => d.hoursAgo))
+	const title = deferredData.length ? `Block Size · ${formatLastHoursLabel(hoursAxis.domainMax)}` : 'Block Size'
 
 	return (
-		<ChartCard title='Block Size' loading={isLoading} syncing={inIBD}>
+		<ChartCard title={title} loading={isLoading} syncing={inIBD}>
 			<ChartContainer config={SERIES}>
 				<AreaChart data={deferredData} margin={DEFAULT_CHART_MARGIN}>
 					{/* Gradient definitions */}
@@ -118,8 +120,8 @@ export default function BlockSizeChart() {
 						{...makeXAxis('')}
 						type='number'
 						dataKey='hoursAgo'
-						domain={[24, 0]}
-						ticks={[24, 18, 12, 6, 0]}
+						domain={hoursAxis.domain}
+						ticks={hoursAxis.ticks}
 						tickFormatter={(h) => (h === 0 ? 'now' : `-${h} h`)}
 						reversed
 					/>
@@ -131,8 +133,7 @@ export default function BlockSizeChart() {
 						type='number'
 						// reuses the same scale as the "hours-ago" axis
 						dataKey='hoursAgo'
-						// only show ticks at 24, 18, 12, and 6 hours ago, not 0
-						ticks={[24, 18, 12, 6]}
+						ticks={hoursAxis.heightTicks}
 						// map each tick's hours-ago value to the nearest datapoint's block-height for a pseudo-accurate label
 						tickFormatter={(h) => {
 							const closest = findClosestDataPoint(deferredData, h, (item) => item.hoursAgo)

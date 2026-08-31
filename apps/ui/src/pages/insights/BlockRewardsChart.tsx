@@ -5,7 +5,15 @@ import {formatDistanceStrict} from 'date-fns'
 import {ChartContainer, ChartTooltip} from '@/components/ui/chart'
 
 import {ChartCard, DEFAULT_GRID_PROPS, DEFAULT_CHART_MARGIN, makeXAxis, makeYAxis} from './ChartDefaults'
-import {sliceLast24h, calculateHoursAgo, hoursToMs, zatToZEC, formatZec} from '@/lib/chartHelpers'
+import {
+	sliceLast24h,
+	calculateHoursAgo,
+	hoursToMs,
+	zatToZEC,
+	formatZec,
+	hoursAxisFromData,
+	formatLastHoursLabel,
+} from '@/lib/chartHelpers'
 
 import {useBlocks} from '@/hooks/useBlocks'
 import {syncStage} from '@/lib/sync-progress'
@@ -25,11 +33,9 @@ export default function RewardsChart() {
 	const stage = syncStage(syncStatus)
 	const inIBD = stage !== 'synced' // 'pre-headers' | 'headers' | 'IBD'
 
-	// 144 blocks is exactly 24 hours at 1 block per 10 min.
-	// 200 blocks ensures we have 24 hours of data even at worst-case historical block times
+	// Zcash targets ~75s blocks, so 200 blocks is ~4.2 hours. Bars use height, not a 24h scale.
 	const {data: raw = [], isLoading} = useBlocks({limit: 200, stage})
 
-	// slice the last 24 hours of data
 	const {slice} = sliceLast24h(raw)
 
 	const chartData = slice.map(({height, subsidySat, feesSat, time}) => ({
@@ -41,6 +47,8 @@ export default function RewardsChart() {
 
 	// Defer the data to avoid blocking the main thread and allow the chart to render immediately and the dock tab to animate smoothly
 	const deferredData = useDeferredValue(chartData)
+	const hoursAxis = hoursAxisFromData(deferredData.map((d) => d.hoursAgo))
+	const title = deferredData.length ? `Block Rewards · ${formatLastHoursLabel(hoursAxis.domainMax)}` : 'Block Rewards'
 
 	const legend = (
 		<div className='flex items-center gap-4 text-white/60 text-[12px]'>
@@ -54,7 +62,7 @@ export default function RewardsChart() {
 	)
 
 	return (
-		<ChartCard title='Block Rewards' legend={legend} loading={isLoading} syncing={inIBD}>
+		<ChartCard title={title} legend={legend} loading={isLoading} syncing={inIBD}>
 			<ChartContainer config={SERIES}>
 				<BarChart data={deferredData} margin={DEFAULT_CHART_MARGIN} barCategoryGap={1} barSize={6}>
 					{/* Gradient definitions */}
