@@ -56,6 +56,7 @@ docker compose -f docker-compose.prod.yml up
 
 ## Notes
 
+- The Umbrel Community App Store listing lives in [nickpio/umbrel-app-store](https://github.com/nickpio/umbrel-app-store), not this repository.
 - `zcashd` reached end of life in July 2026. This app does not ship it.
 - Zebra's official images are currently **amd64**. ARM devices may need a locally built `zebrad`.
 - Zakura 1.2.0 publishes amd64 and arm64 images. The app image still copies Zebra from an amd64-only tag, so a multi-arch build is not automatic.

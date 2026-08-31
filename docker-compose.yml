@@ -1,4 +1,4 @@
-# docker-compose.yml — development stack only (prod compose lives in umbrel-store/)
+# docker-compose.yml — development stack only (prod image: docker-compose.prod.yml)
 
 version: '3.7'
 
