@@ -1,0 +1,22 @@
+{
+	"name": "Zcash Node",
+	"install": "bash .cursor/install.sh",
+	"terminals": [
+		{
+			"name": "backend",
+			"command": "ZEBRAD_BIN=$HOME/bin/zebrad LIGHTWALLETD_BIN=$HOME/bin/lightwalletd DEFAULT_CHAIN=Testnet npm run --workspace apps/backend dev",
+			"description": "Fastify backend (:3000). Spawns zebrad (RPC :8232) and lightwalletd (:9067) on Testnet."
+		},
+		{
+			"name": "ui",
+			"command": "npm run --workspace apps/ui dev",
+			"description": "Vite dev server (:5173). Proxies /api to the backend; browse the app here."
+		}
+	],
+	"ports": [
+		{"name": "ui", "port": 5173},
+		{"name": "backend", "port": 3000},
+		{"name": "zebra-rpc", "port": 8232},
+		{"name": "lightwalletd", "port": 9067}
+	]
+}
