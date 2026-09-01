@@ -16,6 +16,19 @@ const BLOSSOM_HEIGHT: Record<ZcashChain, number> = {
 	regtest: 1,
 }
 
+// ZIP-1015 / ZIP-1016 defer 12% of the subsidy to a lockbox that is never paid out in the coinbase.
+// Ranges are [start, end) and mirror Zebra's `Deferred` funding streams (NU6 and NU6.1).
+const LOCKBOX_NUMERATOR = 12
+const FUNDING_STREAM_DENOMINATOR = 100
+const LOCKBOX_HEIGHT_RANGES: Record<ZcashChain, Array<[number, number]>> = {
+	main: [[2_726_400, 4_406_400]],
+	test: [
+		[2_976_000, 3_396_000],
+		[3_536_500, 4_476_000],
+	],
+	regtest: [],
+}
+
 const ZIP317_MARGINAL_FEE = 5_000
 const ZIP317_GRACE_ACTIONS = 2
 
@@ -43,6 +56,12 @@ export function computeBlockSubsidy(height: number, chain: ZcashChain = 'main'):
 	if (halvings >= 64) return 0
 	const blossomDivisor = height >= blossom ? BLOSSOM_POW_RATIO : 1
 	return Math.floor(MAX_BLOCK_SUBSIDY / 2 ** halvings / blossomDivisor)
+}
+
+export function computeLockboxZat(height: number, chain: ZcashChain = 'main'): number {
+	const deferred = LOCKBOX_HEIGHT_RANGES[chain].some(([start, end]) => height >= start && height < end)
+	if (!deferred) return 0
+	return Math.floor((computeBlockSubsidy(height, chain) * LOCKBOX_NUMERATOR) / FUNDING_STREAM_DENOMINATOR)
 }
 
 function isCoinbaseTx(tx: FeeTx): boolean {
@@ -86,9 +105,9 @@ function coinbaseCreatedZat(tx: FeeTx): number {
 	)
 }
 
-export function blockFeesZat(coinbase: FeeTx | undefined, subsidyZat: number): number {
+export function blockFeesZat(coinbase: FeeTx | undefined, subsidyZat: number, lockboxZat = 0): number {
 	if (!coinbase?.vout?.length) return 0
-	return Math.max(0, coinbaseCreatedZat(coinbase) - subsidyZat)
+	return Math.max(0, coinbaseCreatedZat(coinbase) - (subsidyZat - lockboxZat))
 }
 
 function logicalActions(tx: FeeTx): number {

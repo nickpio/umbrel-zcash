@@ -14,6 +14,7 @@ import {
 	blockFeesZat,
 	chainFromRpc,
 	computeBlockSubsidy,
+	computeLockboxZat,
 	percentiles,
 	txFeeSamplesZat,
 	type ZcashChain,
@@ -82,7 +83,7 @@ function rawToBlock(raw: RawBlock, chain: ZcashChain): Block {
 		weight: raw.weight || size,
 		txCount: raw.nTx || raw.tx.length,
 		subsidySat,
-		feesSat: blockFeesZat(raw.tx[0], subsidySat),
+		feesSat: blockFeesZat(raw.tx[0], subsidySat, computeLockboxZat(raw.height, chain)),
 		feeRates: percentiles(txFeeSamplesZat(raw.tx)),
 		transactionGrid: transactionGrid(raw.tx, 20),
 	}
