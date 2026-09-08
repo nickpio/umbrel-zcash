@@ -11,6 +11,7 @@
 		"lint": "eslint .",
 		"lint:fix": "eslint --fix .",
 		"typecheck": "tsc -p tsconfig.base.json --noEmit",
+		"test:libs": "node --import tsx --test 'libs/**/*.test.ts'",
 		"format": "prettier --write .",
 		"format:check": "prettier --check ."
 	},

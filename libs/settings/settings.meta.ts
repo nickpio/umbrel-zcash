@@ -135,7 +135,8 @@ export const settingsMetadata = {
 		kind: 'number',
 		label: 'Max Connections per IP',
 		bitcoinLabel: 'network.max_connections_per_ip',
-		description: 'Limit how many peers from the same IP address the node will accept. Helps against sybil-style flooding.',
+		description:
+			'Limit how many peers from the same IP address the node will accept. Helps against sybil-style flooding.',
 		min: 1,
 		max: 50,
 		step: 1,
@@ -164,12 +165,18 @@ export function resolveVersion(desired: SelectedVersion): BitcoinCoreVersion {
 }
 
 export function settingsMetadataForVersion(version: BitcoinCoreVersion) {
+	return filterMetadataForVersion(settingsMetadata, version)
+}
+
+// An option is available from `introducedIn` (inclusive) up to `removedIn` (exclusive),
+// using the release order of AVAILABLE_BITCOIN_CORE_VERSIONS.
+export function filterMetadataForVersion(options: Record<string, VersionedOption>, version: BitcoinCoreVersion) {
 	const metadata: Record<string, Option> = {}
 	const versionIdx = AVAILABLE_BITCOIN_CORE_VERSIONS.indexOf(version)
 
-	for (const [key, value] of Object.entries(settingsMetadata) as Array<[string, VersionedOption]>) {
-		if (value.introducedIn && versionIdx > AVAILABLE_BITCOIN_CORE_VERSIONS.indexOf(value.introducedIn)) continue
-		if (value.removedIn && versionIdx <= AVAILABLE_BITCOIN_CORE_VERSIONS.indexOf(value.removedIn)) continue
+	for (const [key, value] of Object.entries(options)) {
+		if (value.introducedIn && versionIdx < AVAILABLE_BITCOIN_CORE_VERSIONS.indexOf(value.introducedIn)) continue
+		if (value.removedIn && versionIdx >= AVAILABLE_BITCOIN_CORE_VERSIONS.indexOf(value.removedIn)) continue
 
 		const merged = {
 			...value,
