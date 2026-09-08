@@ -59,7 +59,8 @@ Gotchas:
 ### Lint / typecheck / build
 
 - Canonical builds (used by the Dockerfile) both pass:
-  `npx tsc -b libs/shared-types libs/settings apps/backend` and `npm run --workspace apps/ui build`.
+ `npx tsc -b libs/shared-types libs/settings apps/backend` and `npm run --workspace apps/ui build`
+ (the UI build runs `npm run --workspace apps/ui typecheck` first, so UI type errors fail the build).
 - The repo-root aggregate `npm run typecheck` (`tsc -p tsconfig.base.json`) and `npm run lint`
   **report pre-existing errors** on a clean tree: `tsconfig.base.json` does not define the UI's
   `@/` path alias (only `#settings`/`#types`), and there is existing eslint style debt in the UI.
