@@ -91,6 +91,8 @@ export class LightwalletdManager {
 				return
 			}
 			this.exitInfo = {
+				source: 'lightwalletd',
+				label: 'lightwalletd',
 				code,
 				sig,
 				logTail: [...this.logRing],
@@ -104,6 +106,8 @@ export class LightwalletdManager {
 			console.error('[lightwalletd-manager] failed to spawn:', err)
 			this.lastError = err
 			this.exitInfo = {
+				source: 'lightwalletd',
+				label: 'lightwalletd',
 				code: null,
 				sig: null,
 				logTail: [err.message],
