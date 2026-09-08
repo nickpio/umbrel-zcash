@@ -57,7 +57,7 @@ export default function BitcoindErrorLog({
 		const url = URL.createObjectURL(blob)
 		const a = document.createElement('a')
 		a.href = url
-		a.download = 'zebra-log-tail.txt'
+		a.download = `${exitInfo.label.toLowerCase()}-log-tail.txt`
 		document.body.appendChild(a)
 		a.click()
 		a.remove()
@@ -99,7 +99,7 @@ export default function BitcoindErrorLog({
 					className='mb-6 rounded-lg border border-red-900 bg-red-950/80 p-4'
 				>
 					<p className='mb-2 text-sm text-red-200'>
-						Zebra stopped unexpectedly. Review the logs below for more information.
+						{exitInfo.label} stopped unexpectedly. Review the logs below for more information.
 					</p>
 
 					{/* scrollable log viewer with FadeScrollArea */}

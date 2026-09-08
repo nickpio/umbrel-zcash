@@ -3,13 +3,16 @@ import {LightwalletdManager} from '../lightwalletd/manager.js'
 import {waitForRpc} from './rpc-client.js'
 import {ensureConfig, getSettings} from '../config/config.js'
 
-import type {BitcoindVersion, BitcoindStatus, BitcoindLifecycleResponse, ExitInfo} from '#types'
+import type {BitcoindVersion, BitcoindStatus, BitcoindLifecycleResponse, ExitInfo, ExitSnapshot} from '#types'
 import type WebSocket from 'ws'
 
 export const bitcoind = new ZebradManager()
 export const lightwalletd = new LightwalletdManager()
 
 async function startLightwalletdWhenReady(): Promise<void> {
+	// A new node launch supersedes any earlier lightwalletd crash; otherwise the
+	// snapshot would report it as crashed while it merely waits for the RPC.
+	lightwalletd.exitInfo = null
 	try {
 		await waitForRpc()
 		lightwalletd.start()
@@ -55,18 +58,27 @@ export const restart = async (): Promise<BitcoindLifecycleResponse> => {
 	return {...status(), result: 'started'}
 }
 
-export const exitInfo = (): ExitInfo | null => bitcoind.exitInfo ?? lightwalletd.exitInfo
+// Report the crash of whichever process is currently down, node first. A stale
+// node record must not mask a live lightwalletd failure.
+export const exitInfo = (): ExitInfo | null => {
+	if (!bitcoind.status().running && bitcoind.exitInfo) return bitcoind.exitInfo
+	if (!lightwalletd.status().running && lightwalletd.exitInfo) return lightwalletd.exitInfo
+	return null
+}
 
 export const events = () => bitcoind.events
 
 export function wsExitStream(socket: WebSocket) {
 	const send = (payload: unknown) => socket.send(JSON.stringify(payload))
 
-	send({
+	const snapshot: ExitSnapshot = {
 		type: 'snapshot',
 		running: bitcoind.status().running,
 		exit: bitcoind.exitInfo,
-	})
+		lightwalletdRunning: lightwalletd.status().running,
+		lightwalletdExit: lightwalletd.exitInfo,
+	}
+	send(snapshot)
 
 	const handler = (info: ExitInfo) => send({type: 'exit', ...info})
 
