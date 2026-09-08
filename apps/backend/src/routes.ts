@@ -43,7 +43,18 @@ export default fp(async (app: FastifyInstance) => {
 	app.get(`${rpcBase}/peers/count`, peers.peerCount)
 	app.get(`${rpcBase}/peers/locations`, peers.peerLocations)
 
-	app.get<{Querystring: {limit?: number}}>(`${rpcBase}/blocks`, (req) => blocks.list(req.query.limit))
+	app.get<{Querystring: {limit?: number}}>(
+		`${rpcBase}/blocks`,
+		{
+			schema: {
+				querystring: {
+					type: 'object',
+					properties: {limit: {type: 'integer', minimum: 1, maximum: blocks.MAX_LIST_LIMIT}},
+				},
+			},
+		},
+		(req) => blocks.list(req.query.limit),
+	)
 
 	// connect routes
 	const connectBase = `${BASE}/connect`
