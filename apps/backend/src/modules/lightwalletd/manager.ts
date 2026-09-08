@@ -3,6 +3,7 @@ import {EventEmitter} from 'node:events'
 
 import type {ExitInfo} from '#types'
 import {onLine} from '../../lib/on-line.js'
+import {waitForExit} from '../../lib/wait-for-exit.js'
 import {LIGHTWALLETD_BIN, LIGHTWALLETD_DIR, ZCASH_CONF} from '../../lib/paths.js'
 import {lightwalletdTlsFiles} from './tls.js'
 
@@ -108,6 +109,10 @@ export class LightwalletdManager {
 				logTail: [err.message],
 				message: `Failed to start lightwalletd: ${err.message}`,
 			}
+			// A failed spawn emits `error` + `close` but never `exit`, so clear the
+			// child here or status() stays running:true and stop() waits forever.
+			this.child = null
+			this.startedAt = null
 			this.events.emit('exit', this.exitInfo)
 		})
 	}
@@ -117,7 +122,7 @@ export class LightwalletdManager {
 		this.events.emit('stop')
 		this.expectingExit = true
 		this.child.kill('SIGTERM')
-		await new Promise((res) => this.child?.once('exit', res))
+		await waitForExit(this.child)
 		this.expectingExit = false
 		this.child = null
 		this.startedAt = null
