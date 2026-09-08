@@ -243,7 +243,7 @@ export function Transactions({
 	faceSize: number
 	planeZ: number
 	isHovered?: boolean
-	block: Block
+	block?: Block
 }) {
 	const squares = useMemo(() => {
 		const squares = []
