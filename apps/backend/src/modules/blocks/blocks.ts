@@ -198,7 +198,18 @@ async function fetchBlock(height: number, chain: ZcashChain, wantFull: boolean):
 	return block
 }
 
-export async function list(limit = 200): Promise<Block[]> {
+// Upper bound for a single list() call; anything larger would fan out one
+// getblock RPC per block through the shared queue and starve every other caller.
+export const MAX_LIST_LIMIT = CACHE_DEPTH
+
+export function clampListLimit(limit: unknown): number {
+	const parsed = Math.trunc(Number(limit))
+	if (!Number.isFinite(parsed)) return MAX_LIST_LIMIT
+	return Math.min(Math.max(parsed, 1), MAX_LIST_LIMIT)
+}
+
+export async function list(requestedLimit: unknown = MAX_LIST_LIMIT): Promise<Block[]> {
+	const limit = clampListLimit(requestedLimit)
 	const info = await rpcClient.command<ChainTipInfo>('getblockchaininfo')
 	const chain = chainFromRpc(info.chain)
 	const tipHeight = info.blocks
