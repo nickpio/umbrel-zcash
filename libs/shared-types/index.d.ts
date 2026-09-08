@@ -21,11 +21,25 @@ export type BitcoindLifecycleResponse = {
 	result: BitcoindLifecycleResult
 }
 
+export type ExitSource = 'node' | 'lightwalletd'
+
 export type ExitInfo = {
+	/** Which managed process exited. */
+	source: ExitSource
+	/** Human-readable process name for the UI ("Zebra", "Zakura", "lightwalletd"). */
+	label: string
 	code: number | null
 	sig: NodeJS.Signals | null
 	logTail: string[]
 	message: string
+}
+
+export type ExitSnapshot = {
+	type: 'snapshot'
+	running: boolean
+	exit: ExitInfo | null
+	lightwalletdRunning: boolean
+	lightwalletdExit: ExitInfo | null
 }
 
 export type PeerCount = {

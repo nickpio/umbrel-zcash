@@ -121,6 +121,8 @@ export class ZebradManager {
 			}
 
 			this.exitInfo = {
+				source: 'node',
+				label: this.implLabel,
 				code,
 				sig,
 				logTail: [...this.logRing],
@@ -135,6 +137,8 @@ export class ZebradManager {
 			console.error(`[${this.implLabel.toLowerCase()}-manager] failed to spawn:`, err)
 			this.lastError = err
 			this.exitInfo = {
+				source: 'node',
+				label: this.implLabel,
 				code: null,
 				sig: null,
 				logTail: [err.message],
