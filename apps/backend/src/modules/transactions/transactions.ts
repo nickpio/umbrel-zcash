@@ -1,11 +1,13 @@
 import type WebSocket from 'ws'
 import {transactionStream} from './zmq-subscriber.js'
+import {createPingThrottle} from './ping-throttle.js'
 
 // Throttle strategy: we queue every tx immediately, but emit at most
-// one WebSocket frame every 33 ms (~30 transactions per second). That frame includes
+// one WebSocket frame every 33 ms (~30 frames per second). That frame includes
 // `count`, telling the UI how many transactions arrived in the slice,
 // so bursts can be represented faithfully while network & render load
-// stay capped at ≤30 messages per second.
+// stay capped at ≤30 messages per second. Transactions that land inside a
+// window are flushed when it closes, even if no further transaction arrives.
 const MIN_INTERVAL_MS = 33
 
 // Track connected clients
@@ -18,21 +20,7 @@ function broadcastPing(count: number) {
 	}
 }
 
-// queed txs waiting to be sent
-let pending = 0
-let lastPingMs = 0
-
-// Increment the queue for every tx; no throttling here.
-transactionStream.on('hashtx', () => {
-	pending += 1
-
-	const now = Date.now()
-	if (now - lastPingMs >= MIN_INTERVAL_MS) {
-		broadcastPing(pending)
-		pending = 0
-		lastPingMs = now
-	}
-})
+transactionStream.on('hashtx', createPingThrottle(broadcastPing, MIN_INTERVAL_MS))
 
 // WebSocket push for new clients
 export function wsStream(socket: WebSocket) {
