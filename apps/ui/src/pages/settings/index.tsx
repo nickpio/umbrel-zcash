@@ -384,7 +384,9 @@ function FieldRenderer({
 						{option.subDescription && (
 							<p className='text-[12px] font-[400] text-white/60 mt-1'>{option.subDescription}</p>
 						)}
-						<p className='text-[12px] font-[400] text-white/50 mt-2'>default: {option.default}</p>
+						<p className='text-[12px] font-[400] text-white/50 mt-2'>
+							default: {option.options.find((opt) => opt.value === option.default)?.label ?? option.default}
+						</p>
 					</div>
 				)}
 			/>
