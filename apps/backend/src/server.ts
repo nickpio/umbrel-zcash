@@ -73,9 +73,12 @@ await app.register(routes)
 // SPA fallback is last to serve the UI routes
 app.get('/*', (_, reply) => reply.sendFile('index.html'))
 
+const httpPort = Number(process.env['HTTP_PORT'] || 3000)
+const httpHost = process.env['HTTP_HOST'] || '0.0.0.0'
+
 // Start the server
 app
-	.listen({port: 3000, host: '0.0.0.0'})
+	.listen({port: httpPort, host: httpHost})
 	.then((address) => app.log.info(`Zcash Node backend is running at ${address}`))
 	.catch((error) => {
 		app.log.error(`Failed to start server: ${error}`)

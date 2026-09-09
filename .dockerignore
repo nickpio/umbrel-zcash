@@ -17,3 +17,9 @@
 
 # Local data mounts – we don't need them inside the build context
 data
+
+# Desktop packaging artefacts
+apps/desktop/resources/bin
+apps/desktop/resources/.cache
+apps/desktop/pack
+apps/desktop/release

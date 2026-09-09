@@ -7,3 +7,9 @@ dist
 # App data during dev
 # includes __node_modules_linux__ deps cache
 data
+
+# Desktop packaging inputs/outputs (binaries are fetched, not committed)
+apps/desktop/resources/bin
+apps/desktop/resources/.cache
+apps/desktop/pack
+apps/desktop/release

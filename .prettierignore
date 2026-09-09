@@ -7,6 +7,10 @@ data
 dist
 build
 coverage
+apps/desktop/pack
+apps/desktop/release
+apps/desktop/resources/bin
+apps/desktop/resources/.cache
 
 # generated type declarations
 # allow our liba.shared-types to be formatted

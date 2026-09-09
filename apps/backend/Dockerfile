@@ -21,8 +21,9 @@ WORKDIR /repo
 COPY package*.json ./
 COPY apps/backend/package*.json apps/backend/
 COPY apps/ui/package*.json apps/ui/
+COPY apps/desktop/package*.json apps/desktop/
 
-RUN npm ci --workspaces --include-workspace-root --install-strategy=hoisted
+RUN npm ci --workspace apps/backend --workspace apps/ui --include-workspace-root --install-strategy=hoisted
 
 ENV PATH="/repo/node_modules/.bin:$PATH"
 
@@ -65,7 +66,9 @@ WORKDIR /app
 
 COPY package*.json ./
 COPY apps/backend/package*.json apps/backend/
-RUN npm ci --omit=dev --install-strategy=hoisted --ignore-scripts
+COPY apps/ui/package*.json apps/ui/
+COPY apps/desktop/package*.json apps/desktop/
+RUN npm ci --omit=dev --workspace apps/backend --include-workspace-root --install-strategy=hoisted --ignore-scripts
 
 COPY --from=app-builder /repo/apps/backend/dist ./dist
 COPY --from=app-builder /repo/apps/ui/dist ./dist/public
