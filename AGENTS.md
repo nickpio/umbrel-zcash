@@ -32,7 +32,7 @@ mkdir -p /home/ubuntu/bin
 curl -fsSL https://github.com/ZcashFoundation/zebra/releases/download/v6.3.0/zebrad-6.3.0-x86_64-unknown-linux-gnu.tar.gz \
   | tar -xz -C /home/ubuntu/bin zebrad
 # lightwalletd: no binary release — build from source with Go (>=1.17; VM has go1.22)
-git clone --depth 1 --branch v0.5.0 https://github.com/zcash/lightwalletd.git /tmp/lightwalletd \
+git clone --depth 1 --branch v0.5.4 https://github.com/zcash/lightwalletd.git /tmp/lightwalletd \
   && (cd /tmp/lightwalletd && make) && cp /tmp/lightwalletd/lightwalletd /home/ubuntu/bin/
 ```
 

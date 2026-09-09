@@ -27,9 +27,9 @@ if [ ! -x "$BIN_DIR/zebrad" ]; then
 fi
 
 if [ ! -x "$BIN_DIR/lightwalletd" ]; then
-	echo "Building lightwalletd v0.5.0 from source (no upstream binary release)…"
+	echo "Building lightwalletd v0.5.4 from source (no upstream binary release)…"
 	tmp="$(mktemp -d)"
-	git clone --depth 1 --branch v0.5.0 https://github.com/zcash/lightwalletd.git "$tmp"
+	git clone --depth 1 --branch v0.5.4 https://github.com/zcash/lightwalletd.git "$tmp"
 	(cd "$tmp" && make)
 	cp "$tmp/lightwalletd" "$BIN_DIR/"
 	rm -rf "$tmp"
