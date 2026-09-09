@@ -1,35 +1,65 @@
 // Single source of truth for node settings: validation schema, defaults, and the Settings UI.
 
-export const AVAILABLE_BITCOIN_CORE_VERSIONS = ['zebra-v6.3.0', 'zakura-v1.2.0'] as const
-
-export const DEFAULT_BITCOIN_CORE_VERSION = AVAILABLE_BITCOIN_CORE_VERSIONS[0]
-export type BitcoinCoreVersion = (typeof AVAILABLE_BITCOIN_CORE_VERSIONS)[number]
 export type NodeImplementation = 'zebra' | 'zakura'
 
-export const LATEST = 'latest' as const
-export const VERSION_CHOICES = [LATEST, ...AVAILABLE_BITCOIN_CORE_VERSIONS] as const
+// Releases bundled in the app image, newest first. "Latest" resolves to the first
+// entry; the second is offered as a pinned preset so users can roll back one release.
+// The Dockerfile must ship a binary for every entry listed here.
+export const NODE_RELEASES = {
+	zebra: ['zebra-v6.3.0', 'zebra-v6.2.3'],
+	zakura: ['zakura-v1.3.2', 'zakura-v1.3.1'],
+} as const satisfies Record<NodeImplementation, readonly [string, string]>
+
+export const AVAILABLE_BITCOIN_CORE_VERSIONS = [...NODE_RELEASES.zebra, ...NODE_RELEASES.zakura] as const
+export type BitcoinCoreVersion = (typeof AVAILABLE_BITCOIN_CORE_VERSIONS)[number]
+
+export const LATEST_VERSIONS = {zebra: 'zebra-latest', zakura: 'zakura-latest'} as const
+
+export const DEFAULT_SELECTED_VERSION = LATEST_VERSIONS.zebra
+
+export const VERSION_CHOICES = [
+	LATEST_VERSIONS.zebra,
+	NODE_RELEASES.zebra[1],
+	LATEST_VERSIONS.zakura,
+	NODE_RELEASES.zakura[1],
+] as const
 export type SelectedVersion = (typeof VERSION_CHOICES)[number]
 
 const LEGACY_VERSIONS: Record<string, SelectedVersion> = {
-	'v6.3.0': 'zebra-v6.3.0',
-	zebra: 'zebra-v6.3.0',
-	zakura: 'zakura-v1.2.0',
+	latest: LATEST_VERSIONS.zebra,
+	'v6.3.0': LATEST_VERSIONS.zebra,
+	zebra: LATEST_VERSIONS.zebra,
+	zakura: LATEST_VERSIONS.zakura,
 }
 
 export function normalizeSelectedVersion(raw: unknown): SelectedVersion {
-	if (typeof raw === 'string' && (VERSION_CHOICES as readonly string[]).includes(raw)) {
-		return raw as SelectedVersion
-	}
-	if (typeof raw === 'string' && raw in LEGACY_VERSIONS) return LEGACY_VERSIONS[raw]
-	return LATEST
+	if (typeof raw !== 'string') return DEFAULT_SELECTED_VERSION
+	if ((VERSION_CHOICES as readonly string[]).includes(raw)) return raw as SelectedVersion
+	if (raw in LEGACY_VERSIONS) return LEGACY_VERSIONS[raw]
+	// A pinned release we no longer ship (or the latest release pinned by name)
+	// falls back to that implementation's Latest instead of resetting to Zebra.
+	if (raw.startsWith('zakura-')) return LATEST_VERSIONS.zakura
+	if (raw.startsWith('zebra-')) return LATEST_VERSIONS.zebra
+	return DEFAULT_SELECTED_VERSION
 }
 
-export function implementationForVersion(version: BitcoinCoreVersion): NodeImplementation {
+export function implementationForVersion(version: BitcoinCoreVersion | SelectedVersion): NodeImplementation {
 	return version.startsWith('zakura-') ? 'zakura' : 'zebra'
 }
 
-export function implementationLabel(version: BitcoinCoreVersion): string {
+export function implementationLabel(version: BitcoinCoreVersion | SelectedVersion): string {
 	return implementationForVersion(version) === 'zakura' ? 'Zakura' : 'Zebra'
+}
+
+/** `zebra-v6.3.0` -> `6.3.0` */
+export function releaseNumber(version: BitcoinCoreVersion): string {
+	return version.replace(/^(zebra|zakura)-v/, '')
+}
+
+function versionOptionLabel(choice: SelectedVersion): string {
+	const resolved = resolveVersion(choice)
+	const name = `${implementationLabel(resolved)} ${releaseNumber(resolved)}`
+	return (Object.values(LATEST_VERSIONS) as readonly string[]).includes(choice) ? `Latest (${name})` : name
 }
 
 export type Tab = 'peers' | 'network' | 'advanced'
@@ -99,12 +129,10 @@ export const settingsMetadata = {
 		bitcoinLabel: 'version',
 		description:
 			'Choose which Zcash node to run. Only one chain is kept on disk: switching deletes the other implementation’s chain to free space, then syncs from scratch. The node and lightwalletd restart when you save.',
-		options: [
-			{value: LATEST, label: 'Latest (Zebra 6.3.0)'},
-			{value: 'zebra-v6.3.0', label: 'Zebra 6.3.0'},
-			{value: 'zakura-v1.2.0', label: 'Zakura 1.2.0'},
-		],
-		default: LATEST,
+		subDescription:
+			'“Latest” follows the newest release bundled with the app. The pinned entries stay one release behind so you can roll back without resyncing.',
+		options: VERSION_CHOICES.map((value) => ({value, label: versionOptionLabel(value)})),
+		default: DEFAULT_SELECTED_VERSION,
 	},
 
 	listen: {
@@ -161,7 +189,9 @@ export const settingsMetadata = {
 
 export function resolveVersion(desired: SelectedVersion): BitcoinCoreVersion {
 	const normalized = normalizeSelectedVersion(desired)
-	return normalized === LATEST ? DEFAULT_BITCOIN_CORE_VERSION : normalized
+	if (normalized === LATEST_VERSIONS.zebra) return NODE_RELEASES.zebra[0]
+	if (normalized === LATEST_VERSIONS.zakura) return NODE_RELEASES.zakura[0]
+	return normalized
 }
 
 export function settingsMetadataForVersion(version: BitcoinCoreVersion) {

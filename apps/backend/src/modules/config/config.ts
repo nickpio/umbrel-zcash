@@ -14,8 +14,8 @@ import {
 import {restart, start as startNode, stop as stopNode} from '../bitcoind/bitcoind.js'
 import {
 	DefaultValuesForVersion,
+	DEFAULT_SELECTED_VERSION,
 	implementationForVersion,
-	LATEST,
 	normalizeSelectedVersion,
 	resolveVersion,
 	schemaForVersion,
@@ -202,7 +202,7 @@ export async function updateSettings(patch: Partial<SettingsSchema>): Promise<Se
 }
 
 export async function restoreDefaults(): Promise<SettingsSchema> {
-	const defaults = DefaultValuesForVersion(resolveVersion(LATEST)) as SettingsSchema
+	const defaults = DefaultValuesForVersion(resolveVersion(DEFAULT_SELECTED_VERSION)) as SettingsSchema
 	if (process.env['DEFAULT_CHAIN']) (defaults as Record<string, unknown>)['chain'] = process.env['DEFAULT_CHAIN']
 
 	cachedSettings = defaults
