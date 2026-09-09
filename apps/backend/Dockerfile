@@ -14,7 +14,8 @@ FROM zfnd/zebra:6.3.0 AS zebra
 FROM zfnd/zebra:6.2.3 AS zebra-previous
 FROM zakuracore/zakura:1.3.2 AS zakura
 FROM zakuracore/zakura:1.3.1 AS zakura-previous
-FROM electriccoinco/lightwalletd:v0.5.0 AS lightwalletd
+# v0.5.1+ recognises the "/Zakura:" backend; older builds abort on it.
+FROM electriccoinco/lightwalletd:v0.5.4 AS lightwalletd
 
 ##########################################################
 # Dependencies layer
