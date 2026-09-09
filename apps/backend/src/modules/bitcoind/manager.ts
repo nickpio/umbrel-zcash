@@ -11,7 +11,7 @@ import {
 } from '#settings'
 import {onLine} from '../../lib/on-line.js'
 import {waitForExit} from '../../lib/wait-for-exit.js'
-import {ZEBRAD_BIN, ZAKURAD_BIN, ZEBRAD_TOML} from '../../lib/paths.js'
+import {ZEBRAD_BIN, ZEBRAD_TOML, nodeBinaryFor} from '../../lib/paths.js'
 
 type ZebradManagerOptions = {
 	binary?: string
@@ -65,7 +65,7 @@ export class ZebradManager {
 		const version = resolveVersion(normalizeSelectedVersion((settings as {version?: unknown}).version))
 		const impl = implementationForVersion(version)
 		this.implLabel = implementationLabel(version)
-		this.bin = impl === 'zakura' ? ZAKURAD_BIN : ZEBRAD_BIN
+		this.bin = nodeBinaryFor(version)
 
 		const envKey = impl === 'zakura' ? 'ZAKURAD_EXTRA_ARGS' : 'ZEBRAD_EXTRA_ARGS'
 		const envArgs = (process.env[envKey] ?? '')

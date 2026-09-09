@@ -2,9 +2,22 @@ import path from 'node:path'
 import {fileURLToPath} from 'node:url'
 import fse from 'fs-extra'
 
+import {implementationForVersion, releaseNumber, type BitcoinCoreVersion} from '#settings'
+
 export const ZEBRAD_BIN = process.env['ZEBRAD_BIN'] || 'zebrad'
 export const ZAKURAD_BIN = process.env['ZAKURAD_BIN'] || 'zakurad'
 export const LIGHTWALLETD_BIN = process.env['LIGHTWALLETD_BIN'] || 'lightwalletd'
+
+// The image ships one binary per bundled release as `<bin>-<release>` (e.g.
+// `/usr/local/bin/zebrad-6.2.3`). Dev setups with a single unversioned binary
+// fall back to it so the app still starts.
+export function nodeBinaryFor(version: BitcoinCoreVersion): string {
+	const base = implementationForVersion(version) === 'zakura' ? ZAKURAD_BIN : ZEBRAD_BIN
+	const versioned = `${base}-${releaseNumber(version)}`
+	if (fse.existsSync(versioned)) return versioned
+	console.warn(`[paths] ${versioned} not found; falling back to ${base}`)
+	return base
+}
 
 export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../')
 

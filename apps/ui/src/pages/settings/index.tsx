@@ -39,9 +39,9 @@ import SaveSettingsDialog from './SaveSettingsDialog'
 
 import {
 	DefaultValuesForVersion,
+	DEFAULT_SELECTED_VERSION,
 	implementationForVersion,
 	implementationLabel,
-	LATEST,
 	settingsMetadataForVersion,
 	resolveVersion,
 	schemaForVersion,
@@ -415,7 +415,7 @@ export default function SettingsCard() {
 	// and select by current version, or cache the last {version,resolver} pair to avoid rebuilding.
 	const versionedResolver = useMemo(() => {
 		return async (values: any, ctx: any, opts: any) => {
-			const desired = ((values?.version ?? 'latest') as SelectedVersion) || 'latest'
+			const desired = ((values?.version ?? DEFAULT_SELECTED_VERSION) as SelectedVersion) || DEFAULT_SELECTED_VERSION
 			const r = zodResolver(schemaForVersion(desired))
 			return r(values, ctx, opts)
 		}
@@ -425,7 +425,7 @@ export default function SettingsCard() {
 		resolver: versionedResolver as any,
 		mode: 'onChange',
 		reValidateMode: 'onChange',
-		defaultValues: DefaultValuesForVersion(resolveVersion(LATEST)) as any,
+		defaultValues: DefaultValuesForVersion(resolveVersion(DEFAULT_SELECTED_VERSION)) as any,
 		shouldUnregister: false,
 	})
 
@@ -438,7 +438,8 @@ export default function SettingsCard() {
 	}, [initialSettings, form])
 
 	// Live UI: resolve settings metadata for the current selection
-	const selectedVersion = (useWatch({control: form.control, name: 'version'}) as SelectedVersion | undefined) ?? LATEST
+	const selectedVersion =
+		(useWatch({control: form.control, name: 'version'}) as SelectedVersion | undefined) ?? DEFAULT_SELECTED_VERSION
 	const targetVersion = resolveVersion(selectedVersion)
 	const nodeName = implementationLabel(targetVersion)
 	// 3) Materialize version-aware metadata used to render the fields and constraints
