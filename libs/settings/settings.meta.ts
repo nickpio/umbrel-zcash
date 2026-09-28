@@ -6,8 +6,8 @@ export type NodeImplementation = 'zebra' | 'zakura'
 // entry; the second is offered as a pinned preset so users can roll back one release.
 // The Dockerfile must ship a binary for every entry listed here.
 export const NODE_RELEASES = {
-	zebra: ['zebra-v6.3.0', 'zebra-v6.2.3'],
-	zakura: ['zakura-v1.3.2', 'zakura-v1.3.1'],
+	zebra: ['zebra-v6.4.2', 'zebra-v6.3.0'],
+	zakura: ['zakura-v1.5.0', 'zakura-v1.3.2'],
 } as const satisfies Record<NodeImplementation, readonly [string, string]>
 
 export const AVAILABLE_BITCOIN_CORE_VERSIONS = [...NODE_RELEASES.zebra, ...NODE_RELEASES.zakura] as const
