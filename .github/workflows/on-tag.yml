@@ -9,6 +9,18 @@ on:
         description: Image tag to publish
         required: false
         default: v0.1.0
+  # Used by release-node-update.yml, which pushes its tag with GITHUB_TOKEN and
+  # so does not trigger the tag push event above.
+  workflow_call:
+    inputs:
+      tag:
+        description: Image tag to publish
+        required: true
+        type: string
+    outputs:
+      digest:
+        description: Digest of the pushed image
+        value: ${{ jobs.build.outputs.digest }}
 
 jobs:
   build:
@@ -17,18 +29,23 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
     steps:
       - name: Set VERSION and TAG
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TAG="${{ inputs.tag }}"
-          else
+          # inputs.tag is set for workflow_dispatch and workflow_call.
+          TAG="${{ inputs.tag }}"
+          if [ -z "$TAG" ]; then
             TAG="${GITHUB_REF#refs/*/}"
           fi
           echo "TAG=$TAG" >> $GITHUB_ENV
           echo "VERSION=${TAG#v}" >> $GITHUB_ENV
 
       - uses: actions/checkout@v4
+        with:
+          # A called workflow sees the caller's event and ref, so build the tag.
+          ref: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref || env.TAG }}
 
       - name: Login to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
@@ -37,10 +54,13 @@ jobs:
         run: docker buildx create --use
 
       - name: Run Docker buildx
+        id: push
         run: |
           docker buildx build \
             --platform linux/amd64 \
             --file apps/backend/Dockerfile \
             --build-arg VERSION=${{ env.VERSION }} \
             --tag ghcr.io/${{ github.repository }}:${{ env.TAG }} \
+            --metadata-file metadata.json \
             --push .
+          echo "digest=$(jq -r '."containerimage.digest"' metadata.json)" >> "$GITHUB_OUTPUT"

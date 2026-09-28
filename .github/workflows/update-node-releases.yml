@@ -1,0 +1,81 @@
+name: Update node releases
+
+# Once a day, check for new Zebra / Zakura releases and open (or refresh) a PR
+# that bumps NODE_RELEASES, the Dockerfile image tags, tests, docs and the app
+# version. Merging it runs release-node-update.yml, which ships the release to
+# the Umbrel app store.
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-node-releases
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Check for new Zebra / Zakura releases
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Bump releases
+        id: bump
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/update-node-releases.mjs
+
+      - name: Install dependencies
+        if: steps.bump.outputs.changed == 'true'
+        run: npm ci --workspaces --include-workspace-root --install-strategy=hoisted
+
+      - name: Build and test
+        if: steps.bump.outputs.changed == 'true'
+        run: |
+          npx tsc -b libs/shared-types libs/settings apps/backend
+          npm run test:libs
+          npm run --workspace apps/backend test
+          npm run --workspace apps/ui build
+
+      # Confirms the new upstream images exist and still ship the binaries at
+      # the paths the Dockerfile copies from.
+      - name: Build app image
+        if: steps.bump.outputs.changed == 'true'
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --file apps/backend/Dockerfile \
+            --target runtime \
+            .
+
+      - name: Open pull request
+        if: steps.bump.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: automation/node-releases
+          delete-branch: true
+          add-paths: |
+            package.json
+            package-lock.json
+            libs/settings/settings.meta.ts
+            apps/backend/Dockerfile
+            apps/backend/src/lib/paths.test.ts
+            apps/backend/src/modules/config/versions.test.ts
+            README.md
+            AGENTS.md
+            .cursor/install.sh
+          commit-message: |
+            ${{ steps.bump.outputs.title }}
+
+            ${{ steps.bump.outputs.body }}
+          title: ${{ steps.bump.outputs.title }}
+          body: ${{ steps.bump.outputs.body }}

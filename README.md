@@ -10,7 +10,7 @@ This app is a fork of [umbrel-bitcoin](https://github.com/getumbrel/umbrel-bitco
 - **lightwalletd.** Compact-block gRPC server on port `9067`. This is the wallet connection surface (the Electrum equivalent). It listens in plaintext by default. When a publicly trusted certificate is available (Umbrel Tailscale Let’s Encrypt, or `LIGHTWALLETD_TLS_CERT` / `LIGHTWALLETD_TLS_KEY`), it serves TLS for Vizor.
 - **App UI.** React dashboard served by a Fastify backend that manages the selected node and lightwalletd.
 
-All four node binaries ship in the production image as `zebrad-<version>` / `zakurad-<version>`; the release list lives in `NODE_RELEASES` (`libs/settings/settings.meta.ts`) and the matching image tags in `apps/backend/Dockerfile`. Only one node runs at a time. Wallets keep talking to lightwalletd on `9067` either way.
+All four node binaries ship in the production image as `zebrad-<version>` / `zakurad-<version>`; the release list lives in `NODE_RELEASES` (`libs/settings/settings.meta.ts`) and the matching image tags in `apps/backend/Dockerfile`. A daily workflow (`.github/workflows/update-node-releases.yml`) runs `scripts/update-node-releases.mjs` and opens a PR when Zebra or Zakura ships a new release; that PR also bumps the app version. Merging it tags the release, publishes the image, and points the Umbrel app store listing at it (`.github/workflows/release-node-update.yml`), so users are offered the update. Only one node runs at a time. Wallets keep talking to lightwalletd on `9067` either way.
 
 Zakura is a Zebra fork, so the generated TOML, RPC, and P2P layout stay the same. This app runs standalone `zakurad` only. It does not start Zakura's optional zcashd-compat sidecar.
 

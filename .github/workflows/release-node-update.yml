@@ -1,0 +1,98 @@
+name: Release node update
+
+# When a PR from update-node-releases.yml is merged: tag the app version it
+# bumped to, publish the image, and point the Umbrel app store listing at it so
+# umbrelOS offers users the update.
+#
+# Requires the APP_STORE_TOKEN secret: a fine-grained token with Contents
+# read/write on nickpio/umbrel-app-store.
+on:
+  pull_request:
+    types: [closed]
+    branches: [master]
+
+concurrency:
+  group: release-node-update
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: Tag release
+    if: github.event.pull_request.merged && github.event.pull_request.head.ref == 'automation/node-releases'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Read app version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Push tag
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "::error::Tag $TAG already exists. Bump package.json past it and re-run."
+            exit 1
+          fi
+          git tag "$TAG"
+          git push origin "refs/tags/$TAG"
+
+  build:
+    name: Publish image
+    needs: tag
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/on-tag.yml
+    with:
+      tag: ${{ needs.tag.outputs.tag }}
+
+  app-store:
+    name: Update Umbrel app store
+    needs: [tag, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - uses: actions/checkout@v4
+        with:
+          repository: nickpio/umbrel-app-store
+          token: ${{ secrets.APP_STORE_TOKEN }}
+          path: store
+
+      - name: Update listing
+        env:
+          VERSION: ${{ needs.tag.outputs.version }}
+          IMAGE: ghcr.io/${{ github.repository }}:${{ needs.tag.outputs.tag }}@${{ needs.build.outputs.digest }}
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          node scripts/update-app-store.mjs store/personal-zcash-node "$VERSION" "$IMAGE" \
+            "$TITLE. The previous release of each node stays available as the pinned rollback preset under Settings."
+
+      - name: Push to app store
+        working-directory: store
+        env:
+          VERSION: ${{ needs.tag.outputs.version }}
+          TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add personal-zcash-node
+          git commit -m "Release Zcash Node $VERSION: $TITLE" -m "$PR_URL"
+          git push
