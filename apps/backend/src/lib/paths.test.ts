@@ -14,7 +14,7 @@ const {nodeBinaryFor} = await import('./paths.ts')
 
 describe('nodeBinaryFor', () => {
 	before(() => {
-		for (const name of ['zebrad', 'zebrad-6.3.0', 'zakurad', 'zakurad-1.5.0']) {
+		for (const name of ['zebrad', 'zebrad-6.3.0', 'zakurad', 'zakurad-1.6.0']) {
 			fs.writeFileSync(path.join(binDir, name), '', {mode: 0o755})
 		}
 	})
@@ -22,11 +22,11 @@ describe('nodeBinaryFor', () => {
 
 	it('picks the versioned binary when the image ships it', () => {
 		assert.equal(nodeBinaryFor('zebra-v6.3.0'), path.join(binDir, 'zebrad-6.3.0'))
-		assert.equal(nodeBinaryFor('zakura-v1.5.0'), path.join(binDir, 'zakurad-1.5.0'))
+		assert.equal(nodeBinaryFor('zakura-v1.6.0'), path.join(binDir, 'zakurad-1.6.0'))
 	})
 
 	it('falls back to the unversioned binary when the versioned one is missing', () => {
 		assert.equal(nodeBinaryFor('zebra-v6.4.2'), path.join(binDir, 'zebrad'))
-		assert.equal(nodeBinaryFor('zakura-v1.3.2'), path.join(binDir, 'zakurad'))
+		assert.equal(nodeBinaryFor('zakura-v1.5.0'), path.join(binDir, 'zakurad'))
 	})
 })
