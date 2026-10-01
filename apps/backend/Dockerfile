@@ -12,8 +12,8 @@
 ###########################################
 FROM zfnd/zebra:6.4.2 AS zebra
 FROM zfnd/zebra:6.3.0 AS zebra-previous
-FROM zakuracore/zakura:1.5.0 AS zakura
-FROM zakuracore/zakura:1.3.2 AS zakura-previous
+FROM zakuracore/zakura:1.6.0 AS zakura
+FROM zakuracore/zakura:1.5.0 AS zakura-previous
 # v0.5.1+ recognises the "/Zakura:" backend; older builds abort on it.
 FROM electriccoinco/lightwalletd:v0.5.4 AS lightwalletd
 
@@ -43,12 +43,12 @@ VOLUME /data
 
 COPY --from=zebra /usr/local/bin/zebrad /usr/local/bin/zebrad-6.4.2
 COPY --from=zebra-previous /usr/local/bin/zebrad /usr/local/bin/zebrad-6.3.0
-COPY --from=zakura /usr/local/bin/zakurad /usr/local/bin/zakurad-1.5.0
-COPY --from=zakura-previous /usr/local/bin/zakurad /usr/local/bin/zakurad-1.3.2
+COPY --from=zakura /usr/local/bin/zakurad /usr/local/bin/zakurad-1.6.0
+COPY --from=zakura-previous /usr/local/bin/zakurad /usr/local/bin/zakurad-1.5.0
 COPY --from=lightwalletd /usr/local/bin/lightwalletd /usr/local/bin/lightwalletd
 
 RUN ln -sfn zebrad-6.4.2 /usr/local/bin/zebrad \
- && ln -sfn zakurad-1.5.0 /usr/local/bin/zakurad \
+ && ln -sfn zakurad-1.6.0 /usr/local/bin/zakurad \
  && mkdir -p /home/node/.cache \
  && ln -sfn /data/zebra /home/node/.cache/zebra \
  && ln -sfn /data/zakura /home/node/.cache/zakura \
@@ -88,12 +88,12 @@ COPY --from=app-builder /repo/libs/shared-types/dist ./libs/shared-types/dist
 
 COPY --from=zebra /usr/local/bin/zebrad /usr/local/bin/zebrad-6.4.2
 COPY --from=zebra-previous /usr/local/bin/zebrad /usr/local/bin/zebrad-6.3.0
-COPY --from=zakura /usr/local/bin/zakurad /usr/local/bin/zakurad-1.5.0
-COPY --from=zakura-previous /usr/local/bin/zakurad /usr/local/bin/zakurad-1.3.2
+COPY --from=zakura /usr/local/bin/zakurad /usr/local/bin/zakurad-1.6.0
+COPY --from=zakura-previous /usr/local/bin/zakurad /usr/local/bin/zakurad-1.5.0
 COPY --from=lightwalletd /usr/local/bin/lightwalletd /usr/local/bin/lightwalletd
 
 RUN ln -sfn zebrad-6.4.2 /usr/local/bin/zebrad \
- && ln -sfn zakurad-1.5.0 /usr/local/bin/zakurad \
+ && ln -sfn zakurad-1.6.0 /usr/local/bin/zakurad \
  && mkdir -p /home/node/.cache \
  && ln -sfn /data/zebra /home/node/.cache/zebra \
  && ln -sfn /data/zakura /home/node/.cache/zakura \

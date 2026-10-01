@@ -30,7 +30,7 @@ describe('node version choices', () => {
 
 	it('labels every dropdown entry from the release list', () => {
 		const labels = settingsMetadata.version.options.map((o) => o.label)
-		assert.deepEqual(labels, ['Latest (Zebra 6.4.2)', 'Zebra 6.3.0', 'Latest (Zakura 1.5.0)', 'Zakura 1.3.2'])
+		assert.deepEqual(labels, ['Latest (Zebra 6.4.2)', 'Zebra 6.3.0', 'Latest (Zakura 1.6.0)', 'Zakura 1.5.0'])
 	})
 
 	it('defaults to Latest Zebra', () => {

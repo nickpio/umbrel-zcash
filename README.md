@@ -6,7 +6,7 @@ This app is a fork of [umbrel-bitcoin](https://github.com/getumbrel/umbrel-bitco
 
 ## Architecture
 
-- **Zebra (`zebrad`) or Zakura (`zakurad`).** Consensus full node. JSON-RPC on port `8232`, P2P on `8233`. Pick one under Settings → Network. Each implementation offers **Latest** (Zebra 6.4.2, Zakura 1.5.0) plus a pinned preset one release behind (Zebra 6.3.0, Zakura 1.3.2) for rolling back. Default is Latest Zebra.
+- **Zebra (`zebrad`) or Zakura (`zakurad`).** Consensus full node. JSON-RPC on port `8232`, P2P on `8233`. Pick one under Settings → Network. Each implementation offers **Latest** (Zebra 6.4.2, Zakura 1.6.0) plus a pinned preset one release behind (Zebra 6.3.0, Zakura 1.5.0) for rolling back. Default is Latest Zebra.
 - **lightwalletd.** Compact-block gRPC server on port `9067`. This is the wallet connection surface (the Electrum equivalent). It listens in plaintext by default. When a publicly trusted certificate is available (Umbrel Tailscale Let’s Encrypt, or `LIGHTWALLETD_TLS_CERT` / `LIGHTWALLETD_TLS_KEY`), it serves TLS for Vizor.
 - **App UI.** React dashboard served by a Fastify backend that manages the selected node and lightwalletd.
 
