@@ -79,7 +79,21 @@ function readCurrentReleases() {
 
 async function upstreamRelease(impl) {
 	const {githubRepo, dockerRepo} = IMPLEMENTATIONS[impl]
-	const release = await fetchJson(`https://api.github.com/repos/${githubRepo}/releases/latest`)
+	const releasesUrl = `https://api.github.com/repos/${githubRepo}/releases`
+	const isStable = (candidate) =>
+		candidate.draft === false &&
+		candidate.prerelease === false &&
+		typeof candidate.tag_name === 'string' &&
+		SEMVER.test(candidate.tag_name)
+	let release = await fetchJson(`${releasesUrl}/latest`)
+	if (!isStable(release)) {
+		for (let page = 1; ; page++) {
+			const releases = await fetchJson(`${releasesUrl}?per_page=100&page=${page}`)
+			release = releases.find(isStable)
+			if (release) break
+			if (releases.length < 100) throw new Error(`No stable plain semver release found for ${githubRepo}`)
+		}
+	}
 	const version = release.tag_name.replace(/^v/, '')
 	parseSemver(version)
 	// The Dockerfile copies the binary out of the upstream image, so a release
