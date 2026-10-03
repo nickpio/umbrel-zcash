@@ -28,6 +28,9 @@ jobs:
         with:
           node-version-file: .nvmrc
 
+      - name: Test release updater
+        run: node --test scripts/update-node-releases.test.mjs
+
       - name: Bump releases
         id: bump
         env:
