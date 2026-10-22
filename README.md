@@ -10,9 +10,17 @@ This app is a fork of [umbrel-bitcoin](https://github.com/getumbrel/umbrel-bitco
 - **lightwalletd.** Compact-block gRPC server on port `9067`. This is the wallet connection surface (the Electrum equivalent). It listens in plaintext by default. When a publicly trusted certificate is available (Umbrel Tailscale Let’s Encrypt, or `LIGHTWALLETD_TLS_CERT` / `LIGHTWALLETD_TLS_KEY`), it serves TLS for Vizor.
 - **App UI.** React dashboard served by a Fastify backend that manages the selected node and lightwalletd.
 
-All four node binaries ship in the production image as `zebrad-<version>` / `zakurad-<version>`; the release list lives in `NODE_RELEASES` (`libs/settings/settings.meta.ts`) and the matching image tags in `apps/backend/Dockerfile`. A daily workflow (`.github/workflows/update-node-releases.yml`) runs `scripts/update-node-releases.mjs` and opens a PR when Zebra or Zakura ships a new release; that PR also bumps the app version. Merging it tags the release, publishes the image, and points the Umbrel app store listing at it (`.github/workflows/release-node-update.yml`), so users are offered the update. Only one node runs at a time. Wallets keep talking to lightwalletd on `9067` either way.
+All four node binaries ship in the production image as `zebrad-<version>` / `zakurad-<version>`; the release list lives in `NODE_RELEASES` (`libs/settings/settings.meta.ts`) and the matching image tags in `apps/backend/Dockerfile`. A daily workflow (`.github/workflows/update-node-releases.yml`) runs `scripts/update-node-releases.mjs` and opens a PR when Zebra or Zakura ships a new release; that PR also bumps the app version. Merging it tags the app version and publishes the image and a GitHub Release (`.github/workflows/release-node-update.yml`). Distribution to Umbrel users is handled separately in the `umbrel-app-store` repository. Only one node runs at a time. Wallets keep talking to lightwalletd on `9067` either way.
 
 Zakura is a Zebra fork, so the generated TOML, RPC, and P2P layout stay the same. This app runs standalone `zakurad` only. It does not start Zakura's optional zcashd-compat sidecar.
+
+## Automated node releases
+
+- The daily check (also available via **Run workflow**) only proposes stable upstream releases with a published Linux amd64 image, then runs tests and a Docker build before opening or refreshing `automation/node-releases`.
+- Review and merge that PR into `master` to publish it. The release workflow tags the merged commit, publishes its image to GHCR, and creates a stable GitHub Release with generated notes and the exact image digest. It does not modify the app-store repository or update running nodes.
+- `GITHUB_TOKEN` handles tags, GitHub Releases, and GHCR; no cross-repository token is needed. The app version is bumped from `package.json`, independently of the app-store listing. Keep `package.json` and `package-lock.json` in sync when cutting releases manually.
+- If publishing fails after tagging, rerun the failed workflow jobs. Existing tags are accepted only when they point to the same merged commit, and an existing published stable GitHub Release is reused.
+- Run `node --test scripts/*.test.mjs` to test the updater and release automation locally.
 
 ## Switching implementations
 

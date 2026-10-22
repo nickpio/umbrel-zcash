@@ -1,11 +1,8 @@
 name: Release node update
 
 # When a PR from update-node-releases.yml is merged: tag the app version it
-# bumped to, publish the image, and point the Umbrel app store listing at it so
-# umbrelOS offers users the update.
-#
-# Requires the APP_STORE_TOKEN secret: a fine-grained token with Contents
-# read/write on nickpio/umbrel-app-store.
+# bumped to and publish the image and a GitHub Release. Distribution to Umbrel
+# users is handled separately by the umbrel-app-store repository.
 on:
   pull_request:
     types: [closed]
@@ -24,26 +21,37 @@ jobs:
       contents: write
     outputs:
       tag: ${{ steps.version.outputs.tag }}
-      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Test release automation
+        run: node --test scripts/*.test.mjs
+
       - name: Read app version
         id: version
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Push tag
         env:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
-          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
-            echo "::error::Tag $TAG already exists. Bump package.json past it and re-run."
-            exit 1
+          REMOTE_TAG=$(git ls-remote --tags origin "refs/tags/$TAG")
+          if [ -n "$REMOTE_TAG" ]; then
+            git fetch origin "refs/tags/$TAG:refs/tags/$TAG"
+            if [ "$(git rev-parse "$TAG^{commit}")" != "$(git rev-parse HEAD)" ]; then
+              echo "::error::Tag $TAG already exists on a different commit. Bump package.json past it and re-run."
+              exit 1
+            fi
+            echo "Tag $TAG already points to this commit; continuing the release."
+            exit 0
           fi
           git tag "$TAG"
           git push origin "refs/tags/$TAG"
@@ -58,41 +66,70 @@ jobs:
     with:
       tag: ${{ needs.tag.outputs.tag }}
 
-  app-store:
-    name: Update Umbrel app store
+  release:
+    name: Publish GitHub Release
     needs: [tag, build]
     runs-on: ubuntu-24.04
     permissions:
-      contents: read
+      contents: write
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
-
-      - uses: actions/checkout@v4
-        with:
-          repository: nickpio/umbrel-app-store
-          token: ${{ secrets.APP_STORE_TOKEN }}
-          path: store
-
-      - name: Update listing
+      - name: Create or reconcile release
+        uses: actions/github-script@v7
         env:
-          VERSION: ${{ needs.tag.outputs.version }}
+          TAG: ${{ needs.tag.outputs.tag }}
+          TITLE: ${{ github.event.pull_request.title }}
           IMAGE: ghcr.io/${{ github.repository }}:${{ needs.tag.outputs.tag }}@${{ needs.build.outputs.digest }}
-          TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          node scripts/update-app-store.mjs store/personal-zcash-node "$VERSION" "$IMAGE" \
-            "$TITLE. The previous release of each node stays available as the pinned rollback preset under Settings."
-
-      - name: Push to app store
-        working-directory: store
-        env:
-          VERSION: ${{ needs.tag.outputs.version }}
-          TITLE: ${{ github.event.pull_request.title }}
           PR_URL: ${{ github.event.pull_request.html_url }}
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add personal-zcash-node
-          git commit -m "Release Zcash Node $VERSION: $TITLE" -m "$PR_URL"
-          git push
+        with:
+          script: |
+            const {TAG, TITLE, IMAGE, PR_URL} = process.env
+            const target = {...context.repo, tag: TAG}
+            let release
+            try {
+              const existing = await github.rest.repos.getReleaseByTag(target)
+              release = existing.data
+            } catch (error) {
+              if (error.status !== 404) throw error
+              const created = await github.rest.repos.createRelease({
+                ...context.repo,
+                tag_name: TAG,
+                name: `${TAG}: ${TITLE}`,
+                body: [
+                  TITLE,
+                  '',
+                  `Node update: ${PR_URL}`,
+                  '',
+                  `Container image: \`${IMAGE}\``,
+                  '',
+                  'The previous release of each node remains available as the pinned rollback preset under Settings.',
+                ].join('\n'),
+                draft: false,
+                prerelease: false,
+                generate_release_notes: true,
+              })
+              release = created.data
+            }
+            if (release.tag_name !== TAG || release.draft || release.prerelease) {
+              throw new Error(`${TAG} is not a published stable release`)
+            }
+            const imageLine = `Container image: \`${IMAGE}\``
+            const imagePattern = /^Container image: `[^`\r\n]*`[\t ]*$/gm
+            const body = release.body ?? ''
+            const updatedBody = imagePattern.test(body)
+              ? body.replace(imagePattern, () => imageLine)
+              : [body, imageLine].filter(Boolean).join('\n\n')
+            if (updatedBody !== body) {
+              await github.rest.repos.updateRelease({
+                ...context.repo,
+                release_id: release.id,
+                body: updatedBody,
+              })
+            }
+            const {data: verified} = await github.rest.repos.getReleaseByTag(target)
+            if (verified.tag_name !== TAG || verified.draft || verified.prerelease) {
+              throw new Error(`${TAG} is not a published stable release`)
+            }
+            if (!(verified.body ?? '').split(/\r?\n/).includes(imageLine)) {
+              throw new Error(`${TAG} does not reference the current container image`)
+            }
+            core.info(`Published release: ${verified.html_url}`)

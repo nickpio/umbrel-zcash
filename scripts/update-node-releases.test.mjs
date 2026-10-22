@@ -13,8 +13,6 @@ const ZEBRA_RELEASES = 'https://api.github.com/repos/ZcashFoundation/zebra/relea
 const ZAKURA_RELEASES = 'https://api.github.com/repos/zakura-core/zakura/releases'
 const ZEBRA_DOCKER = 'https://hub.docker.com/v2/repositories/zfnd/zebra/tags'
 const ZAKURA_DOCKER = 'https://hub.docker.com/v2/repositories/zakuracore/zakura/tags'
-const APP_STORE_MANIFEST =
-	'https://raw.githubusercontent.com/nickpio/umbrel-app-store/main/personal-zcash-node/umbrel-app.yml'
 
 function release(tag, {prerelease = false, draft = false} = {}) {
 	return {
@@ -179,7 +177,6 @@ test('finds a stable release behind invalid latest releases and bumps it', async
 		[`${ZEBRA_RELEASES}?per_page=100&page=2`]: jsonResponse([release('v6.5.0')]),
 		[`${ZEBRA_DOCKER}/6.5.0`]: dockerResponse(),
 		...currentZakuraResponses(),
-		[APP_STORE_MANIFEST]: {text: 'version: "0.1.20"\n', status: 200, statusText: 'OK'},
 	}
 
 	const {root, result, requests, output} = await runUpdater(t, responses)
@@ -192,11 +189,12 @@ test('finds a stable release behind invalid latest releases and bumps it', async
 		`${ZEBRA_DOCKER}/6.5.0`,
 		`${ZAKURA_RELEASES}/latest`,
 		`${ZAKURA_DOCKER}/1.5.0`,
-		APP_STORE_MANIFEST,
 	])
 	assert.equal(output.changed, 'true')
-	assert.equal(output.version, '0.1.21')
+	assert.equal(output.version, '0.1.17')
 	assert.equal(output.title, 'Bump Zebra to 6.5.0')
+	assert.match(output.body, /creates a GitHub Release/)
+	assert.doesNotMatch(output.body, /updates the Umbrel app store/)
 	assert.match(output.body, /\| Zebra \| 6\.4\.2 → \*\*6\.5\.0\*\* \| 6\.3\.0 → 6\.4\.2 \|/)
 
 	const settings = await readFile(path.join(root, 'libs/settings/settings.meta.ts'), 'utf8')
@@ -206,10 +204,10 @@ test('finds a stable release behind invalid latest releases and bumps it', async
 	assert.match(dockerfile, /^FROM zfnd\/zebra:6\.4\.2 AS zebra-previous$/m)
 	assert.match(dockerfile, /zebrad-6\.5\.0$/m)
 	assert.match(dockerfile, /zebrad-6\.4\.2$/m)
-	assert.equal(JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8')).version, '0.1.21')
+	assert.equal(JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8')).version, '0.1.17')
 	const lock = JSON.parse(await readFile(path.join(root, 'package-lock.json'), 'utf8'))
-	assert.equal(lock.version, '0.1.21')
-	assert.equal(lock.packages[''].version, '0.1.21')
+	assert.equal(lock.version, '0.1.17')
+	assert.equal(lock.packages[''].version, '0.1.17')
 })
 
 test('skips a release without a linux amd64 Docker image', async (t) => {
@@ -223,8 +221,14 @@ test('skips a release without a linux amd64 Docker image', async (t) => {
 
 	assert.equal(result.code, 0, result.stderr)
 	assert.equal(output.changed, 'false')
-	assert.equal(requests.some((url) => url.includes('?per_page=')), false)
-	assert.equal(requests.includes(APP_STORE_MANIFEST), false)
+	assert.equal(
+		requests.some((url) => url.includes('?per_page=')),
+		false,
+	)
+	assert.equal(
+		requests.some((url) => url.includes('umbrel-app-store')),
+		false,
+	)
 	const settings = await readFile(path.join(root, 'libs/settings/settings.meta.ts'), 'utf8')
 	assert.match(settings, /zebra: \['zebra-v6\.4\.2', 'zebra-v6\.3\.0'\]/)
 })
@@ -239,7 +243,10 @@ test('reports a GitHub release-list failure', async (t) => {
 	const {result, requests} = await runUpdater(t, responses)
 
 	assert.equal(result.code, 1)
-	assert.match(result.stderr, new RegExp(`GET ${listUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} -> 503 Service Unavailable`))
+	assert.match(
+		result.stderr,
+		new RegExp(`GET ${listUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} -> 503 Service Unavailable`),
+	)
 	assert.deepEqual(requests, [`${ZEBRA_RELEASES}/latest`, listUrl])
 })
 

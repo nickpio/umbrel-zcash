@@ -7,9 +7,8 @@
 // pinned rollback preset. Every file that hardcodes the shipped versions is
 // rewritten to match.
 //
-// Any bump also raises the app version (package.json) one patch past the version
-// published in the Umbrel app store, so umbrelOS offers users the update once
-// the release workflow ships it.
+// Any bump also raises the app version (package.json) by one patch for the
+// GitHub Release. App-store distribution is handled in its own repository.
 //
 // Usage: node scripts/update-node-releases.mjs [--dry-run]
 // Writes `changed`, `version`, `title` and `body` to $GITHUB_OUTPUT when set.
@@ -27,8 +26,6 @@ const IMPLEMENTATIONS = {
 }
 
 const SETTINGS_FILE = 'libs/settings/settings.meta.ts'
-const APP_STORE_MANIFEST =
-	'https://raw.githubusercontent.com/nickpio/umbrel-app-store/main/personal-zcash-node/umbrel-app.yml'
 
 // Files that spell out the shipped versions. Only lines mentioning the
 // implementation are touched, so unrelated `1.3.2`-style strings survive.
@@ -155,24 +152,12 @@ function applyBump(impl, from, to) {
 	return touched
 }
 
-async function publishedAppVersion() {
-	const res = await fetch(APP_STORE_MANIFEST, {headers: {'User-Agent': 'umbrel-zcash-release-bot'}})
-	if (!res.ok) throw new Error(`GET ${APP_STORE_MANIFEST} -> ${res.status} ${res.statusText}`)
-	const m = /^version:\s*["']?([\d.]+)["']?\s*$/m.exec(await res.text())
-	if (!m) throw new Error(`No version in ${APP_STORE_MANIFEST}`)
-	return m[1]
-}
-
-// package.json can lag behind releases cut by hand, so bump from whichever of it
-// and the app store listing is newer.
-async function bumpAppVersion() {
+function bumpAppVersion() {
 	const pkgPath = path.join(ROOT, 'package.json')
 	const lockPath = path.join(ROOT, 'package-lock.json')
 	const pkg = fs.readFileSync(pkgPath, 'utf8')
 	const current = JSON.parse(pkg).version
-	const published = await publishedAppVersion()
-	const base = compareSemver(current, published) >= 0 ? current : published
-	const [major, minor, patch] = parseSemver(base)
+	const [major, minor, patch] = parseSemver(current)
 	const next = `${major}.${minor}.${patch + 1}`
 
 	if (!DRY_RUN) {
@@ -187,7 +172,7 @@ async function bumpAppVersion() {
 				.replace(/^(\t\t"": \{\n\t\t\t"name": "[^"]+",\n\t\t\t"version": )"[^"]+"/m, `$1"${next}"`),
 		)
 	}
-	console.log(`App: ${base} -> ${next} (package.json ${current}, app store ${published})`)
+	console.log(`App: ${current} -> ${next}`)
 	return next
 }
 
@@ -228,12 +213,12 @@ const changed = bumps.length > 0 && !DRY_RUN
 setOutput('changed', String(changed))
 
 if (bumps.length) {
-	const appVersion = await bumpAppVersion()
+	const appVersion = bumpAppVersion()
 	const title = `Bump ${bumps.map((b) => `${b.label} to ${b.to.latest}`).join(' and ')}`
 	const body = [
 		'Automated update from the daily node release check.',
 		'',
-		`App version: **${appVersion}**. Merging this PR tags \`v${appVersion}\`, publishes the image, and updates the Umbrel app store listing so users are offered the update.`,
+		`App version: **${appVersion}**. Merging this PR tags \`v${appVersion}\`, publishes the image, and creates a GitHub Release. Distribution is handled separately in the umbrel-app-store repository.`,
 		'',
 		'| Implementation | Latest | Rollback preset | Release notes |',
 		'| --- | --- | --- | --- |',

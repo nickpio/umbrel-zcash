@@ -2,8 +2,8 @@ name: Update node releases
 
 # Once a day, check for new Zebra / Zakura releases and open (or refresh) a PR
 # that bumps NODE_RELEASES, the Dockerfile image tags, tests, docs and the app
-# version. Merging it runs release-node-update.yml, which ships the release to
-# the Umbrel app store.
+# version. Merging it runs release-node-update.yml, which publishes the image
+# and a GitHub Release. App-store distribution is handled in its own repository.
 on:
   schedule:
     - cron: '17 6 * * *'
@@ -28,8 +28,8 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      - name: Test release updater
-        run: node --test scripts/update-node-releases.test.mjs
+      - name: Test release automation
+        run: node --test scripts/*.test.mjs
 
       - name: Bump releases
         id: bump
