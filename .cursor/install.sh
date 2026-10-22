@@ -21,8 +21,8 @@ BIN_DIR="$HOME/bin"
 mkdir -p "$BIN_DIR"
 
 if [ ! -x "$BIN_DIR/zebrad" ]; then
-	echo "Fetching zebrad 6.4.2 (prebuilt linux-gnu binary)…"
-	curl -fsSL https://github.com/ZcashFoundation/zebra/releases/download/v6.4.2/zebrad-6.4.2-x86_64-unknown-linux-gnu.tar.gz \
+	echo "Fetching zebrad 7.0.0 (prebuilt linux-gnu binary)…"
+	curl -fsSL https://github.com/ZcashFoundation/zebra/releases/download/v7.0.0/zebrad-7.0.0-x86_64-unknown-linux-gnu.tar.gz \
 		| tar -xz -C "$BIN_DIR" zebrad
 fi
 
