@@ -7,7 +7,7 @@ export type NodeImplementation = 'zebra' | 'zakura'
 // The Dockerfile must ship a binary for every entry listed here.
 export const NODE_RELEASES = {
 	zebra: ['zebra-v7.0.0', 'zebra-v6.4.2'],
-	zakura: ['zakura-v1.8.3', 'zakura-v1.8.1'],
+	zakura: ['zakura-v1.8.5', 'zakura-v1.8.3'],
 } as const satisfies Record<NodeImplementation, readonly [string, string]>
 
 export const AVAILABLE_BITCOIN_CORE_VERSIONS = [...NODE_RELEASES.zebra, ...NODE_RELEASES.zakura] as const
