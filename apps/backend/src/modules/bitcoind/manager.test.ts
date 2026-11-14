@@ -1,6 +1,7 @@
 import {describe, it} from 'node:test'
 import assert from 'node:assert/strict'
 import {once} from 'node:events'
+import {ChildProcess} from 'node:child_process'
 
 import {ZebradManager} from './manager.ts'
 import {LightwalletdManager} from '../lightwalletd/manager.ts'
@@ -62,11 +63,26 @@ for (const [name, create, source, label] of [
 		})
 
 		it('stop() resolves even when called before the spawn error has fired', async () => {
-			const manager = create()
-			manager.start()
+			const kills: Array<number | undefined> = []
+			const originalKill = ChildProcess.prototype.kill
+			// The unguarded call is kill(0, SIGTERM): it signals this process
+			// group. Record it and refuse to deliver a signal with no pid.
+			ChildProcess.prototype.kill = function (signal?: NodeJS.Signals | number) {
+				kills.push(this.pid)
+				if (!this.pid) return false
+				return originalKill.call(this, signal)
+			}
 
-			await withTimeout(manager.stop(), 2000, 'stop() during spawn failure')
-			assert.equal(manager.status().running, false)
+			try {
+				const manager = create()
+				manager.start()
+
+				await withTimeout(manager.stop(), 2000, 'stop() during spawn failure')
+				assert.equal(manager.status().running, false)
+				assert.deepEqual(kills, [])
+			} finally {
+				ChildProcess.prototype.kill = originalKill
+			}
 		})
 
 		it('can retry start() after a failed spawn', async () => {

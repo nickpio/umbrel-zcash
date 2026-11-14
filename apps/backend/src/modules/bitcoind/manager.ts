@@ -155,11 +155,20 @@ export class ZebradManager {
 	async stop() {
 		if (!this.child) return
 
+		const child = this.child
 		this.events.emit('stop')
-		this.expectingExit = true
-		this.child.kill('SIGTERM')
-		await waitForExit(this.child)
-		this.expectingExit = false
+
+		// A failed spawn (ENOENT) never receives a pid. child.kill() then calls
+		// kill(0, SIGTERM) and signals our own process group, which takes down
+		// the GitHub Actions runner. Only signal a process that actually started.
+		// https://github.com/nodejs/node/pull/65054
+		if (child.pid) {
+			this.expectingExit = true
+			child.kill('SIGTERM')
+			await waitForExit(child)
+			this.expectingExit = false
+		}
+
 		this.child = null
 		this.startedAt = null
 	}
