@@ -30,7 +30,7 @@ describe('node version choices', () => {
 
 	it('labels every dropdown entry from the release list', () => {
 		const labels = settingsMetadata.version.options.map((o) => o.label)
-		assert.deepEqual(labels, ['Latest (Zebra 7.0.0)', 'Zebra 6.4.2', 'Latest (Zakura 1.8.6)', 'Zakura 1.8.5'])
+		assert.deepEqual(labels, ['Latest (Zebra 7.1.0)', 'Zebra 7.0.0', 'Latest (Zakura 1.8.9)', 'Zakura 1.8.6'])
 	})
 
 	it('defaults to Latest Zebra', () => {
@@ -50,7 +50,7 @@ describe('normalizeSelectedVersion', () => {
 
 	it('moves a pinned release that is no longer shipped to that implementation’s Latest', () => {
 		assert.equal(normalizeSelectedVersion('zakura-v1.2.0'), LATEST_VERSIONS.zakura)
-		assert.equal(normalizeSelectedVersion('zebra-v7.0.0'), LATEST_VERSIONS.zebra)
+		assert.equal(normalizeSelectedVersion('zebra-v7.1.0'), LATEST_VERSIONS.zebra)
 		assert.equal(normalizeSelectedVersion('zebra-v5.0.0'), LATEST_VERSIONS.zebra)
 	})
 
@@ -71,6 +71,6 @@ describe('schemaForVersion', () => {
 
 	it('rejects a version string that is not selectable', () => {
 		const defaults = DefaultValuesForVersion(resolveVersion(LATEST_VERSIONS.zebra))
-		assert.throws(() => schemaForVersion(LATEST_VERSIONS.zebra).parse({...defaults, version: 'zebra-v7.0.0'}))
+		assert.throws(() => schemaForVersion(LATEST_VERSIONS.zebra).parse({...defaults, version: 'zebra-v7.1.0'}))
 	})
 })
