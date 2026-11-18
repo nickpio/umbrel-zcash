@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react'
 import QrSvg from '@wojtekmaj/react-qr-svg'
 import copy from 'copy-to-clipboard'
 import {Copy, TriangleAlert, LockKeyhole, X as XIcon} from 'lucide-react'
-import {motion, AnimatePresence} from 'framer-motion'
+import {motion} from 'framer-motion'
 
 import UmbrelLogo from '@/assets/umbrel-logo.svg?react'
 
@@ -28,8 +28,8 @@ import type {ConnectionDetails as ConnectionDetailsType, EndpointDetails} from '
 import {useConnectionDetails} from '@/hooks/useConnectionDetails'
 import {useSettings} from '@/hooks/useSettings'
 
-type TabId = 'wallet' | 'rpc' | 'p2p'
-type NetId = 'tor' | 'local' | 'tailscale'
+type TabId = 'wallet' | 'p2p'
+type NetId = 'local' | 'tailscale'
 
 export default function ConnectionDetails() {
 	const {data} = useConnectionDetails()
@@ -37,7 +37,7 @@ export default function ConnectionDetails() {
 	const chainName = (settings as {chain?: string} | undefined)?.['chain'] === 'Testnet' ? 'testnet' : 'mainnet'
 
 	const [tab, setTab] = useState<TabId>('wallet')
-	const [net, setNet] = useState<NetId>('tor')
+	const [net, setNet] = useState<NetId>('local')
 	const [walletDefaultApplied, setWalletDefaultApplied] = useState(false)
 
 	const hasTailscale = !!data?.wallet?.tailscale
@@ -67,7 +67,7 @@ export default function ConnectionDetails() {
 		setNet(next)
 	}
 
-	const conn: Partial<EndpointDetails & {username?: string; password?: string}> = (() => {
+	const conn: Partial<EndpointDetails> = (() => {
 		if (!data) return {}
 		if (tab === 'wallet') {
 			if (net === 'tailscale') return data.wallet.tailscale ?? {}
@@ -117,12 +117,6 @@ export default function ConnectionDetails() {
 								className='relative text-[12px] bg-transparent border-none data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=inactive]:text-white/60 focus-visible:outline-none focus:outline-none focus:ring-0 rounded-none hover:text-white/80 transition-none pb-3 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-transparent data-[state=active]:after:bg-white'
 							>
 								Wallet
-							</TabsTrigger>
-							<TabsTrigger
-								value='rpc'
-								className='relative text-[12px] bg-transparent border-none data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=inactive]:text-white/60 focus-visible:outline-none focus:outline-none focus:ring-0 rounded-none hover:text-white/80 transition-none pb-3 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-transparent data-[state=active]:after:bg-white'
-							>
-								RPC Details
 							</TabsTrigger>
 							<TabsTrigger
 								value='p2p'
@@ -186,21 +180,6 @@ export default function ConnectionDetails() {
 								</div>
 							</TabsContent>
 
-							<TabsContent value='rpc' className='mt-0 min-h-[360px]'>
-								<div className='flex flex-col sm:flex-row gap-4'>
-									<ConnectionTypeAndQrCard net={net === 'tailscale' ? 'local' : net} setNet={handleNetChange} conn={conn} />
-									<div className='divide-y divide-white/6 overflow-hidden rounded-xl w-full h-fit bg-gradient-to-b from-[#1C1C1C] to-[#0D0D0D]'>
-										<Field label='Host' value={conn.host} />
-										<Field label='Port' value={conn.port?.toString()} />
-										<Field label='URI' value={conn.uri} />
-									</div>
-								</div>
-								{(net === 'local' || net === 'tailscale') && (
-									<div className='mt-4'>
-										<LocalRPCAlert />
-									</div>
-								)}
-							</TabsContent>
 
 							<TabsContent value='p2p' className='mt-0 min-h-[360px]'>
 								<div className='flex flex-col sm:flex-row gap-4'>
@@ -256,7 +235,7 @@ function WalletAlerts({
 				<Alert className='bg-[#EDCE0017] text-[#EDCE00] border-none'>
 					<TriangleAlert className='h-4 w-4' />
 					<AlertDescription className='text-[#EDCE00]'>
-						A Tailscale certificate is active, so LAN and Tor URIs will fail hostname checks in Vizor. Switch to
+						A Tailscale certificate is active, so the Local URI will fail hostname checks in Vizor. Switch to
 						Tailscale and paste that https:// URI instead.
 					</AlertDescription>
 				</Alert>
@@ -267,7 +246,7 @@ function WalletAlerts({
 					<AlertDescription className='text-[#EDCE00]'>
 						Release Vizor needs a publicly trusted https:// endpoint. Install the Umbrel Tailscale app, enable MagicDNS
 						and HTTPS Certificates in the Tailscale admin console, then restart this app. Zodl, Ywallet, and Zingo can
-						use the Local or Tor URI above.
+						use the Local URI above.
 					</AlertDescription>
 				</Alert>
 			)}
@@ -370,7 +349,7 @@ function ConnectionTypeAndQrCard({
 }: {
 	net: string
 	setNet: (v: NetId) => void
-	conn: Partial<ConnectionDetailsType['rpc']['tor']>
+	conn: Partial<ConnectionDetailsType['rpc']['local']>
 	showTailscale?: boolean
 }) {
 	const widthClass = showTailscale ? 'w-[280px]' : 'w-[200px]'
@@ -398,22 +377,6 @@ function ConnectionTypeAndQrCard({
 						Local
 					</TabsTrigger>
 
-					<TabsTrigger
-						value='tor'
-						className='relative cursor-pointer rounded-md py-2 px-3 text-[12px] font-[400] text-white/60 data-[state=active]:text-white transition-colors data-[state=active]:bg-transparent'
-					>
-						{net === 'tor' && (
-							<motion.span
-								layoutId='connection-pill'
-								className='absolute inset-0 -z-10 rounded-sm bg-[#252525]'
-								transition={{type: 'tween', ease: 'easeInOut', duration: 0.2}}
-							>
-								<GradientBorderFromTop />
-							</motion.span>
-						)}
-						Tor
-					</TabsTrigger>
-
 					{showTailscale && (
 						<TabsTrigger
 							value='tailscale'
@@ -438,31 +401,3 @@ function ConnectionTypeAndQrCard({
 	)
 }
 
-function LocalRPCAlert() {
-	return (
-		<AnimatePresence>
-			<motion.div
-				initial={{opacity: 0, y: 10}}
-				animate={{opacity: 1, y: 0}}
-				exit={{opacity: 0, y: -10}}
-				transition={{duration: 0.25}}
-				className='flex flex-col gap-3'
-			>
-				<Alert className='bg-[#EDCE0017] text-[#EDCE00] border-none'>
-					<TriangleAlert className='h-4 w-4' />
-					<AlertDescription className='text-[#EDCE00]'>
-						Zebra’s JSON-RPC has cookie auth disabled so lightwalletd can connect. Do not expose port 8232 to the
-						public internet.
-					</AlertDescription>
-				</Alert>
-
-				<Alert className='bg-[#00BFA317] text-[#00BFA3] border-none'>
-					<LockKeyhole className='h-4 w-4' />
-					<AlertDescription className='text-[#00BFA3]'>
-						Apps on the same Umbrel device stay on the local Docker network and never leave the machine.
-					</AlertDescription>
-				</Alert>
-			</motion.div>
-		</AnimatePresence>
-	)
-}

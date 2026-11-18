@@ -161,14 +161,11 @@ export type EndpointDetails = {
 	uri: string
 }
 
-export type RpcEndpointDetails = EndpointDetails & {
-	username: string
-	password: string
-}
+/** Zebra JSON-RPC has no authentication (cookie auth is disabled), so it carries no credentials. */
+export type RpcEndpointDetails = EndpointDetails
 
 export type ConnectionDetails = {
 	wallet: {
-		tor: EndpointDetails
 		local: EndpointDetails
 		/** Present when Umbrel Tailscale MagicDNS hostname is known and cert is active. */
 		tailscale?: EndpointDetails
@@ -178,11 +175,9 @@ export type ConnectionDetails = {
 	/** Whole days until the Tailscale cert expires; null if unused/unknown. */
 	tailscaleCertDaysRemaining: number | null
 	p2p: {
-		tor: EndpointDetails
 		local: EndpointDetails
 	}
 	rpc: {
-		tor: RpcEndpointDetails
 		local: RpcEndpointDetails
 	}
 }

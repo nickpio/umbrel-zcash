@@ -16,7 +16,7 @@ services:
     ports:
       - '3000:3000'
       - '8233:8233'
-      - '8232:8232'
+      - '127.0.0.1:8232:8232'
       - '9067:9067'
     volumes:
       - ./data:/data
@@ -35,9 +35,6 @@ services:
       TOR_CONTROL_PASSWORD: supersecretpassword
       BITCOIND_IP: 10.21.21.8
       DEVICE_DOMAIN_NAME: 127.0.0.1
-      P2P_HIDDEN_SERVICE: somehiddenservice.onion
-      RPC_HIDDEN_SERVICE: someotherhiddenservice.onion
-      WALLET_HIDDEN_SERVICE: wallethidden.onion
       DEFAULT_CHAIN: Testnet
     networks:
       devnet:

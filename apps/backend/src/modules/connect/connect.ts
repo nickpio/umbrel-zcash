@@ -9,26 +9,16 @@ export async function getConnectionDetails(): Promise<ConnectionDetails> {
 	const walletScheme = walletUriScheme()
 
 	const p2pPort = process.env['P2P_PORT'] ?? '8233'
-	const p2pTorHost = process.env['P2P_HIDDEN_SERVICE'] ?? 'somehiddenservice.onion'
 
 	const rpcPort = process.env['RPC_PORT'] ?? '8232'
-	const rpcTorHost = process.env['RPC_HIDDEN_SERVICE'] ?? 'someotherhiddenservice.onion'
-	const rpcUser = process.env['RPC_USER'] ?? ''
-	const rpcPassword = process.env['RPC_PASS'] ?? ''
 
 	const walletPort = process.env['WALLET_PORT'] ?? '9067'
-	const walletTorHost = process.env['WALLET_HIDDEN_SERVICE'] ?? 'wallethidden.onion'
 	const tailscaleHost = process.env['TAILSCALE_HOSTNAME']?.trim().replace(/\.$/, '') || undefined
 	const usingTailscaleTls = tailscaleTlsActive()
 	const tailscaleCertPath = path.join(LIGHTWALLETD_DIR, 'tls', 'tailscale.crt')
 
 	const details: ConnectionDetails = {
 		wallet: {
-			tor: {
-				host: walletTorHost,
-				port: walletPort,
-				uri: `${walletScheme}://${walletTorHost}:${walletPort}`,
-			},
 			local: {
 				host: localHost,
 				port: walletPort,
@@ -38,11 +28,6 @@ export async function getConnectionDetails(): Promise<ConnectionDetails> {
 		tailscaleTls: usingTailscaleTls,
 		tailscaleCertDaysRemaining: usingTailscaleTls ? certDaysRemaining(tailscaleCertPath) : null,
 		p2p: {
-			tor: {
-				host: p2pTorHost,
-				port: p2pPort,
-				uri: `${p2pTorHost}:${p2pPort}`,
-			},
 			local: {
 				host: localHost,
 				port: p2pPort,
@@ -50,18 +35,9 @@ export async function getConnectionDetails(): Promise<ConnectionDetails> {
 			},
 		},
 		rpc: {
-			tor: {
-				host: rpcTorHost,
-				port: rpcPort,
-				username: rpcUser,
-				password: rpcPassword,
-				uri: `http://${rpcTorHost}:${rpcPort}`,
-			},
 			local: {
 				host: localHost,
 				port: rpcPort,
-				username: rpcUser,
-				password: rpcPassword,
 				uri: `http://${localHost}:${rpcPort}`,
 			},
 		},

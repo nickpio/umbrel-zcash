@@ -70,4 +70,4 @@ docker compose -f docker-compose.prod.yml up
 - `zcashd` reached end of life in July 2026. This app does not ship it.
 - Zebra's official images are currently **amd64**. ARM devices may need a locally built `zebrad`.
 - Zakura publishes amd64 and arm64 images. The app image still copies Zebra from an amd64-only tag, so a multi-arch build is not automatic.
-- lightwalletd is plaintext on LAN and Tor unless a trusted TLS cert is configured. Prefer Tor only for wallets that accept `http://`. While a Tailscale cert is active, Vizor must use the MagicDNS https:// URI (LAN/Tor hostnames will fail certificate checks).
+- lightwalletd is plaintext on LAN unless a trusted TLS cert is configured. While a Tailscale cert is active, Vizor must use the MagicDNS https:// URI (LAN hostnames will fail certificate checks).
