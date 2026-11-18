@@ -1,6 +1,6 @@
 import {rpcClient} from '../bitcoind/rpc-client.js'
 
-import {ipToLatLng, isPublicIp, publicIpToLatLng} from './ip-to-location.js'
+import {isPublicIp, publicIpToLatLng} from './ip-to-location.js'
 
 import type {PeerInfo, PeerCount, PeerLocation, PeerLocationsResponse} from '#types'
 
@@ -63,14 +63,13 @@ function hostFromAddr(addr: string): string {
 export async function peerLocations(): Promise<PeerLocationsResponse> {
 	const peersInfo = await getPeerInfoRPC()
 
-	const peers: PeerLocation[] = peersInfo.map((p) => {
+	// Peers we can't geolocate (Tor, I2P, private addresses, unknown to geoip) are left off the map.
+	const peers: PeerLocation[] = []
+	for (const p of peersInfo) {
 		const host = hostFromAddr(p.addr)
-		return {
-			addr: host,
-			network: p.network,
-			location: ipToLatLng(host, p.network),
-		}
-	})
+		const location = publicIpToLatLng(host, p.network)
+		if (location) peers.push({addr: host, network: p.network, location})
+	}
 
 	// Zebra has no addrlocal. Never invent a city (the old fallback was Brasília).
 	const hostTally = new Map<string, {count: number; network: string}>()
