@@ -27,9 +27,6 @@ export default fp(async (app: FastifyInstance) => {
 
 	app.get(`${bitcoindBase}/version`, bitcoind.version)
 	app.get(`${bitcoindBase}/status`, bitcoind.status)
-	// app.post(`${bitcoindBase}/start`, bitcoind.start)
-	// app.post(`${bitcoindBase}/stop`, bitcoind.stop)
-	// app.post(`${bitcoindBase}/restart`, bitcoind.restart)
 	app.get(`${bitcoindBase}/exit-info`, bitcoind.exitInfo)
 
 	// rpc routes

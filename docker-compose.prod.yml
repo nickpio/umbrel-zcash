@@ -25,41 +25,12 @@ services:
       ZAKURA_DIR: /data/zakura
       APP_STATE_DIR: /data/app
       LIGHTWALLETD_DIR: /data/lightwalletd
-      APPS_SUBNET: '10.21.0.0/16'
       P2P_PORT: 8233
       RPC_PORT: 8232
       WALLET_PORT: 9067
-      TOR_HOST: 10.21.22.10
-      TOR_SOCKS_PORT: 9050
-      TOR_CONTROL_PORT: 9051
-      TOR_CONTROL_PASSWORD: supersecretpassword
       BITCOIND_IP: 10.21.21.8
       DEVICE_DOMAIN_NAME: 127.0.0.1
       DEFAULT_CHAIN: Testnet
     networks:
       devnet:
         ipv4_address: 10.21.21.8
-
-  tor:
-    image: getumbrel/tor:0.4.7.8@sha256:2ace83f22501f58857fa9b403009f595137fa2e7986c4fda79d82a8119072b6a
-    user: '1000:1000'
-    restart: on-failure
-    environment:
-      HOME: '/tmp'
-    entrypoint: >
-      bash -c '
-        TORRC=/tmp/torrc
-        PASS="supersecretpassword"
-        HASH=$$(tor --hash-password "$$PASS" | tail -n1)
-        {
-          echo "SocksPort 0.0.0.0:9050"
-          echo "ControlPort 0.0.0.0:9051"
-          echo "CookieAuthentication 1"
-          echo "CookieAuthFileGroupReadable 1"
-          echo "HashedControlPassword $$HASH"
-        } > "$$TORRC"
-        exec tor -f "$$TORRC"
-      '
-    networks:
-      devnet:
-        ipv4_address: 10.21.22.10

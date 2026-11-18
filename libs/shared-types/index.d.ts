@@ -127,17 +127,6 @@ export type Block = {
 	transactionGrid: {size: number; numberOfBlocks: number}[]
 }
 
-export type SummaryResponse = {
-	networkInfo: unknown
-	blockchainInfo: unknown
-	peerInfo: unknown
-}
-
-export type StatusResponse = {
-	running: boolean
-	pid: number
-}
-
 export type SyncStatus = {
 	syncProgress: number
 	isInitialBlockDownload: boolean

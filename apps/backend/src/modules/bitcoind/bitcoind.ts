@@ -66,8 +66,6 @@ export const exitInfo = (): ExitInfo | null => {
 	return null
 }
 
-export const events = () => bitcoind.events
-
 export function wsExitStream(socket: WebSocket) {
 	const send = (payload: unknown) => socket.send(JSON.stringify(payload))
 

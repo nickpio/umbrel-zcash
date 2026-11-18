@@ -108,34 +108,6 @@ export const columns: ColumnDef<PeerRow>[] = [
 			return <div>{unix > 0 ? timeAgoShort(unix) : '—'}</div>
 		},
 	},
-
-	// TODO: implement ability to block peers and see additional peer details
-	// {
-	// 	id: 'actions',
-	// 	enableHiding: false,
-	// 	cell: ({row}) => {
-	// 		const peer = row.original
-
-	// 		return (
-	// 			<DropdownMenu>
-	// 				<DropdownMenuTrigger asChild>
-	// 					<Button variant='ghost' className='h-8 w-8 p-0 hover:bg-transparent cursor-pointer group'>
-	// 						<span className='sr-only'>Open menu</span>
-	// 						<MoreHorizontal className='text-[#757575] group-hover:text-white' />
-	// 					</Button>
-	// 				</DropdownMenuTrigger>
-	// 				<DropdownMenuContent align='end' className='bg-black border border-[#252525] text-white'>
-	// 					<DropdownMenuItem onClick={() => console.log(`show more details for ${peer.info.address}`)}>
-	// 						More details
-	// 					</DropdownMenuItem>
-	// 					<DropdownMenuItem onClick={() => console.log(`block peer ${peer.info.address}`)}>
-	// 						Block peer
-	// 					</DropdownMenuItem>
-	// 				</DropdownMenuContent>
-	// 			</DropdownMenu>
-	// 		)
-	// 	},
-	// },
 ]
 
 function SortableHeader<T>({header, children}: {header: Header<T, unknown>; children: React.ReactNode}) {
