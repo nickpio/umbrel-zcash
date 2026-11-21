@@ -35,7 +35,6 @@ const VERSIONED_FILES = [
 	'apps/backend/src/modules/config/versions.test.ts',
 	'README.md',
 	'AGENTS.md',
-	'.cursor/install.sh',
 ]
 
 const SEMVER = /^v?(\d+)\.(\d+)\.(\d+)$/

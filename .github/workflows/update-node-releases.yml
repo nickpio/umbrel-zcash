@@ -75,7 +75,6 @@ jobs:
             apps/backend/src/modules/config/versions.test.ts
             README.md
             AGENTS.md
-            .cursor/install.sh
           commit-message: |
             ${{ steps.bump.outputs.title }}
 
