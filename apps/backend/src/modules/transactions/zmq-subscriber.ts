@@ -13,10 +13,7 @@ async function tick() {
 	try {
 		const info = await rpcClient.command<{size?: number}>('getmempoolinfo')
 		const size = info.size ?? 0
-		if (primed && size > lastSize) {
-			const delta = Math.min(size - lastSize, 30)
-			for (let i = 0; i < delta; i++) transactionStream.emit('hashtx')
-		}
+		if (primed && size > lastSize) transactionStream.emit('txs', size - lastSize)
 		lastSize = size
 		primed = true
 	} catch {

@@ -13,8 +13,8 @@ export function useTransactionSocket(): number {
 
 		ws.onmessage = (e) => {
 			try {
-				// The backend sends one “txPing” frame every 33 ms, with
-				// `count` = number of transactions in that slice.
+				// The backend sends one “txPing” frame per mempool poll,
+				// with `count` = number of new transactions since the last poll.
 				const {type, count = 1} = JSON.parse(e.data)
 				if (type === 'txPing') setTxCount((t) => t + count)
 			} catch {
